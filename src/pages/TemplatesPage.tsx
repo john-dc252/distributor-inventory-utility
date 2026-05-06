@@ -1,0 +1,270 @@
+import { createSignal, For, Show, batch } from "solid-js";
+import {
+  state, addTemplate, updateTemplate, deleteTemplate,
+  resetTemplatesToDefault, ACCOUNT_TYPES, ACCOUNT_LABELS,
+  PER_CUSTOMER_ACCOUNTS, DEFAULT_TEMPLATES,
+} from "../store";
+import Modal from "../components/Modal";
+
+const sel = "border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
+const selFull = `w-full ${sel}`;
+const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
+const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+
+function newLeg() { return { accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR }; }
+function newEntry() { return { froms: [newLeg()], tos: [newLeg()] }; }
+
+function normalizeTemplateLegs(legs) {
+  const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
+  const normalized = legsArray
+    .map((leg) => {
+      const accountType = (typeof leg === "string" ? leg : leg?.accountType);
+      return { accountType: accountType ?? ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR };
+    })
+    .filter((leg) => leg.accountType);
+
+  return normalized.length > 0 ? normalized : [newLeg()];
+}
+
+function normalizeTemplateEntries(templateEntries) {
+  if (!Array.isArray(templateEntries) || templateEntries.length === 0) return [newEntry()];
+
+  return templateEntries.map((entry) => ({
+    froms: normalizeTemplateLegs(entry?.froms ?? entry?.from),
+    tos: normalizeTemplateLegs(entry?.tos ?? entry?.to),
+  }));
+}
+
+function LegSelect(props) {
+  const color = () => props.side === "from"
+    ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
+    : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
+  return (
+    <div class={`flex gap-2 items-center rounded p-2 border ${color()}`}>
+      <select
+        value={props.leg.accountType}
+        onChange={(e) => props.onUpdate({ accountType: e.target.value })}
+        class={`flex-1 ${sel}`}
+      >
+        <For each={Object.entries(ACCOUNT_LABELS)}>
+          {([key, label]) => <option value={key}>{label}</option>}
+        </For>
+      </select>
+      <Show when={props.canRemove}>
+        <button type="button" onClick={props.onRemove} class="text-gray-400 hover:text-red-500 text-xs">✕</button>
+      </Show>
+    </div>
+  );
+}
+
+function TemplateForm(props) {
+  const [name, setName] = createSignal(props.initial?.name ?? "");
+  const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
+
+  function updateEntry(i, updated) {
+    setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
+  }
+
+  function updateLeg(ei, side, li, updated) {
+    const key = side === "from" ? "froms" : "tos";
+    const entry = entries()[ei];
+    const list = [...entry[key]];
+    list[li] = updated;
+    updateEntry(ei, { ...entry, [key]: list });
+  }
+
+  function addLeg(ei, side) {
+    const key = side === "from" ? "froms" : "tos";
+    const entry = entries()[ei];
+    updateEntry(ei, { ...entry, [key]: [...entry[key], newLeg()] });
+  }
+
+  function removeLeg(ei, side, li) {
+    const key = side === "from" ? "froms" : "tos";
+    const entry = entries()[ei];
+    updateEntry(ei, { ...entry, [key]: entry[key].filter((_, idx) => idx !== li) });
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!name().trim() || entries().length === 0) return;
+    props.onSave({ name: name().trim(), entries: entries() });
+  }
+
+  return (
+    <form onSubmit={submit} class="space-y-4">
+      <div>
+        <label class={labelCls}>Template Name *</label>
+        <input value={name()} onInput={(e) => setName(e.target.value)} required class={inputCls} placeholder="e.g. Customer return to supplier" />
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class={labelCls}>Entries</label>
+          <button type="button" onClick={() => setEntries((prev) => [...prev, newEntry()])} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add entry</button>
+        </div>
+
+        <For each={entries()}>
+          {(entry, ei) => (
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/40 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Entry {ei() + 1}</span>
+                <Show when={entries().length > 1}>
+                  <button type="button" onClick={() => setEntries((prev) => prev.filter((_, idx) => idx !== ei()))} class="text-xs text-red-400 hover:text-red-600">Remove</button>
+                </Show>
+              </div>
+
+              {/* FROM */}
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
+                  <button type="button" onClick={() => addLeg(ei(), "from")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                </div>
+                <For each={entry.froms}>
+                  {(leg, li) => (
+                    <LegSelect
+                      leg={leg} side="from"
+                      onUpdate={(u) => updateLeg(ei(), "from", li(), u)}
+                      onRemove={() => removeLeg(ei(), "from", li())}
+                      canRemove={entry.froms.length > 1}
+                    />
+                  )}
+                </For>
+              </div>
+
+              {/* TO */}
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
+                  <button type="button" onClick={() => addLeg(ei(), "to")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                </div>
+                <For each={entry.tos}>
+                  {(leg, li) => (
+                    <LegSelect
+                      leg={leg} side="to"
+                      onUpdate={(u) => updateLeg(ei(), "to", li(), u)}
+                      onRemove={() => removeLeg(ei(), "to", li())}
+                      canRemove={entry.tos.length > 1}
+                    />
+                  )}
+                </For>
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-1">
+        <button type="button" onClick={props.onCancel} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+        <button type="submit" class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+      </div>
+    </form>
+  );
+}
+
+function EntryPreview(props) {
+  const froms = () => normalizeTemplateLegs(props.entry.froms ?? props.entry.from);
+  const tos = () => normalizeTemplateLegs(props.entry.tos ?? props.entry.to);
+
+  return (
+    <div class="space-y-1">
+      <For each={froms()}>
+        {(leg) => (
+          <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+            From: {ACCOUNT_LABELS[leg.accountType]}
+          </span>
+        )}
+      </For>
+      <For each={tos()}>
+        {(leg) => (
+          <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+            To: {ACCOUNT_LABELS[leg.accountType]}
+          </span>
+        )}
+      </For>
+    </div>
+  );
+}
+
+export default function TemplatesPage() {
+  const [modal, setModal] = createSignal(null);
+
+  function handleSave(fields) {
+    const m = modal();
+    batch(() => {
+      if (m === "add") addTemplate(fields);
+      else updateTemplate(m.id, fields);
+      setModal(null);
+    });
+  }
+
+  function handleDelete(id) {
+    if (confirm("Delete this template?")) deleteTemplate(id);
+  }
+
+  function handleReset() {
+    if (confirm("Reset all templates to defaults? Custom templates will be lost.")) {
+      resetTemplatesToDefault();
+    }
+  }
+
+  const isEditing = () => modal() && modal() !== "add";
+  const modalTitle = () => modal() === "add" ? "New Template" : "Edit Template";
+
+  return (
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Transaction Templates</h1>
+        <div class="flex gap-2">
+          <button onClick={handleReset} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            Reset to defaults
+          </button>
+          <button onClick={() => setModal("add")} class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">
+            + New Template
+          </button>
+        </div>
+      </div>
+
+      <Modal show={!!modal()} onClose={() => setModal(null)} title={modalTitle()}>
+        <TemplateForm
+          initial={isEditing() ? modal() : undefined}
+          onSave={handleSave}
+          onCancel={() => setModal(null)}
+        />
+      </Modal>
+
+      <div class="space-y-3">
+        <For each={state.templates} fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No templates.</p>}>
+          {(tpl) => (
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tpl.name}</p>
+                  <Show when={DEFAULT_TEMPLATES.some((t) => t.id === tpl.id)}>
+                    <span class="text-xs text-indigo-500 dark:text-indigo-400 font-medium">Default</span>
+                  </Show>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <button onClick={() => setModal(tpl)} class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
+                  <button onClick={() => handleDelete(tpl.id)} class="text-sm text-red-500 dark:text-red-400 hover:underline">Delete</button>
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <For each={tpl.entries}>
+                  {(entry, i) => (
+                    <div>
+                      <Show when={tpl.entries.length > 1}>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Entry {i() + 1}</p>
+                      </Show>
+                      <EntryPreview entry={entry} />
+                    </div>
+                  )}
+                </For>
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
+    </div>
+  );
+}
