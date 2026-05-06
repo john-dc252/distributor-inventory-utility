@@ -1,28 +1,28 @@
 import { createSignal, createMemo, For, Show } from "solid-js";
-import { state, deleteTransaction, ACCOUNT_LABELS } from "../store";
+import { state, deleteTransaction, ACCOUNT_LABELS, Leg, Entry, Item, Customer, AccountType } from "../store";
 
 const inputCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
-function LegPill(props) {
-  const label = ACCOUNT_LABELS[props.leg.accountType] ?? props.leg.accountType;
+function LegPill(props: { leg: Leg & { customerName?: string | null }; side: "source" | "destination" }) {
+  const label = ACCOUNT_LABELS[props.leg.accountType as keyof typeof ACCOUNT_LABELS] ?? props.leg.accountType;
   return (
     <span class={`inline-block text-xs px-2 py-0.5 rounded-full ${
-      props.side === "from"
+      props.side === "source"
         ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
         : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
     }`}>
-      {props.side === "from" ? "From" : "To"}: {label}
+      {props.side === "source" ? "From" : "To"}: {label}
       {props.leg.customerName ? ` (${props.leg.customerName})` : ""} × {props.leg.qty}
     </span>
   );
 }
 
-function EntryBlock(props) {
+function EntryBlock(props: { entry: Entry; items: Item[]; customers: Customer[] }) {
   const item = () => props.items.find((it) => it.id === props.entry.itemId);
-  const resolveLegs = (legs) => {
+  const resolveLegs = (legs: Leg[]) => {
     const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
     return legsArray.map((leg) => {
-      const legObj = typeof leg === "string" ? { accountType: leg, qty: 0 } : leg;
+      const legObj = typeof leg === "string" ? { accountType: leg as AccountType, qty: 0 } : leg;
       return {
         ...legObj,
         customerName: legObj?.customerId ? props.customers.find((c) => c.id === legObj.customerId)?.name ?? legObj.customerId : null,
@@ -30,26 +30,26 @@ function EntryBlock(props) {
     });
   };
 
-  const resolvedFroms = () => resolveLegs(props.entry.froms ?? props.entry.from);
-  const resolvedTos = () => resolveLegs(props.entry.tos ?? props.entry.to);
+  const resolvedSources = () => resolveLegs(props.entry.sources ?? []);
+  const resolvedDestinations = () => resolveLegs(props.entry.destinations ?? []);
 
   return (
     <div class="border border-gray-100 dark:border-gray-700 rounded p-2 space-y-1">
       <Show when={item()}>
         <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">{item().id}</span>
-          {item().name}
+          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">{item()?.id ?? '-'}</span>
+          {item()?.name ?? '-'}
         </span>
       </Show>
       <Show when={!item() && props.entry.itemId}>
         <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{props.entry.itemId}</span>
       </Show>
       <div class="flex flex-wrap gap-1">
-        <For each={resolvedFroms()}>
-          {(leg) => <LegPill leg={leg} side="from" />}
+        <For each={resolvedSources()}>
+          {(leg) => <LegPill leg={leg} side="source" />}
         </For>
-        <For each={resolvedTos()}>
-          {(leg) => <LegPill leg={leg} side="to" />}
+        <For each={resolvedDestinations()}>
+          {(leg) => <LegPill leg={leg} side="destination" />}
         </For>
       </div>
     </div>
@@ -71,14 +71,14 @@ export default function HistoryPage() {
         tx.note?.toLowerCase().includes(q) ||
         tx.date?.includes(q);
       const matchCustomer = !cid || tx.entries.some((e) =>
-        [...(e.froms ?? []), ...(e.tos ?? [])].some((l) => l.customerId === cid)
+        [...(e.sources ?? []), ...(e.destinations ?? [])].some((l) => l.customerId === cid)
       );
       const matchItem = !iid || tx.entries.some((e) => e.itemId === iid);
       return matchSearch && matchCustomer && matchItem;
     });
   });
 
-  function handleDelete(id) {
+  function handleDelete(id: string) {
     if (confirm("Delete this transaction? This will affect account balances.")) deleteTransaction(id);
   }
 

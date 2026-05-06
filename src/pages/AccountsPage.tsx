@@ -1,10 +1,15 @@
-import { createSignal, For, Show, createMemo } from "solid-js";
-import { state, ACCOUNT_TYPES, computeBalance } from "../store";
+import { createSignal, For, Show, createMemo, JSX } from "solid-js";
+import { state, ACCOUNT_TYPES, computeBalance, AccountType } from "../store";
 
 const selectCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
-function AccountRow(props) {
-  const bal = () => computeBalance(props.accountType, props.customerId, props.itemId(), state.transactions);
+function AccountRow(props: {
+  label: string;
+  accountType: AccountType;
+  customerId?: string | null;
+  itemId: () => string | null;
+}) {
+  const bal = () => computeBalance(props.accountType, props.customerId ?? null, props.itemId(), state.transactions);
   return (
     <div class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <span class="text-sm text-gray-700 dark:text-gray-300">{props.label}</span>
@@ -15,7 +20,7 @@ function AccountRow(props) {
   );
 }
 
-function Section(props) {
+function Section(props: { title: string; children: JSX.Element }) {
   return (
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
       <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 mb-3 text-sm uppercase tracking-wide">{props.title}</h2>

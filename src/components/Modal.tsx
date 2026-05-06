@@ -1,8 +1,13 @@
-import { Show } from "solid-js";
+import { Show, JSX } from "solid-js";
 
 // Props must NOT be destructured — SolidJS props are reactive getters and
 // destructuring snapshots them, breaking Show/reactivity inside.
-export default function Modal(props) {
+export default function Modal(props: {
+  show: boolean;
+  onClose: () => void;
+  title: string;
+  children: JSX.Element;
+}) {
   return (
     <Show when={props.show}>
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4">

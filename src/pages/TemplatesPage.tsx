@@ -3,6 +3,7 @@ import {
   state, addTemplate, updateTemplate, deleteTemplate,
   resetTemplatesToDefault, ACCOUNT_TYPES, ACCOUNT_LABELS,
   PER_CUSTOMER_ACCOUNTS, DEFAULT_TEMPLATES,
+  AccountType, Template, TemplateEntry
 } from "../store";
 import Modal from "../components/Modal";
 
@@ -11,14 +12,17 @@ const selFull = `w-full ${sel}`;
 const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
-function newLeg() { return { accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR }; }
-function newEntry() { return { froms: [newLeg()], tos: [newLeg()] }; }
+interface TemplateFormLeg { accountType: AccountType; }
+interface TemplateFormEntry { sources: TemplateFormLeg[]; destinations: TemplateFormLeg[]; }
 
-function normalizeTemplateLegs(legs) {
+function newLeg(): TemplateFormLeg { return { accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR }; }
+function newEntry(): TemplateFormEntry { return { sources: [newLeg()], destinations: [newLeg()] }; }
+
+function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = legsArray
     .map((leg) => {
-      const accountType = (typeof leg === "string" ? leg : leg?.accountType);
+      const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
       return { accountType: accountType ?? ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR };
     })
     .filter((leg) => leg.accountType);
@@ -26,17 +30,23 @@ function normalizeTemplateLegs(legs) {
   return normalized.length > 0 ? normalized : [newLeg()];
 }
 
-function normalizeTemplateEntries(templateEntries) {
+function normalizeTemplateEntries(templateEntries: any): TemplateFormEntry[] {
   if (!Array.isArray(templateEntries) || templateEntries.length === 0) return [newEntry()];
 
   return templateEntries.map((entry) => ({
-    froms: normalizeTemplateLegs(entry?.froms ?? entry?.from),
-    tos: normalizeTemplateLegs(entry?.tos ?? entry?.to),
+    sources: normalizeTemplateLegs(entry?.sources ?? entry?.source),
+    destinations: normalizeTemplateLegs(entry?.destinations ?? entry?.destination),
   }));
 }
 
-function LegSelect(props) {
-  const color = () => props.side === "from"
+function LegSelect(props: {
+  leg: TemplateFormLeg;
+  side: "source" | "destination";
+  onUpdate: (leg: TemplateFormLeg) => void;
+  onRemove: () => void;
+  canRemove: boolean;
+}) {
+  const color = () => props.side === "source"
     ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
     : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
   return (
@@ -57,35 +67,39 @@ function LegSelect(props) {
   );
 }
 
-function TemplateForm(props) {
+function TemplateForm(props: {
+  initial?: Template;
+  onSave: (fields: { name: string; entries: TemplateFormEntry[] }) => void;
+  onCancel: () => void;
+}) {
   const [name, setName] = createSignal(props.initial?.name ?? "");
   const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
 
-  function updateEntry(i, updated) {
+  function updateEntry(i: number, updated: TemplateFormEntry) {
     setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
   }
 
-  function updateLeg(ei, side, li, updated) {
-    const key = side === "from" ? "froms" : "tos";
+  function updateLeg(ei: number, side: "source" | "destination", li: number, updated: TemplateFormLeg) {
+    const key = side === "source" ? "sources" : "destinations";
     const entry = entries()[ei];
     const list = [...entry[key]];
     list[li] = updated;
     updateEntry(ei, { ...entry, [key]: list });
   }
 
-  function addLeg(ei, side) {
-    const key = side === "from" ? "froms" : "tos";
+  function addLeg(ei: number, side: "source" | "destination") {
+    const key = side === "source" ? "sources" : "destinations";
     const entry = entries()[ei];
     updateEntry(ei, { ...entry, [key]: [...entry[key], newLeg()] });
   }
 
-  function removeLeg(ei, side, li) {
-    const key = side === "from" ? "froms" : "tos";
+  function removeLeg(ei: number, side: "source" | "destination", li: number) {
+    const key = side === "source" ? "sources" : "destinations";
     const entry = entries()[ei];
     updateEntry(ei, { ...entry, [key]: entry[key].filter((_, idx) => idx !== li) });
   }
 
-  function submit(e) {
+  function submit(e: Event) {
     e.preventDefault();
     if (!name().trim() || entries().length === 0) return;
     props.onSave({ name: name().trim(), entries: entries() });
@@ -118,15 +132,15 @@ function TemplateForm(props) {
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
-                  <button type="button" onClick={() => addLeg(ei(), "from")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                  <button type="button" onClick={() => addLeg(ei(), "source")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
                 </div>
-                <For each={entry.froms}>
+                <For each={entry.sources}>
                   {(leg, li) => (
                     <LegSelect
-                      leg={leg} side="from"
-                      onUpdate={(u) => updateLeg(ei(), "from", li(), u)}
-                      onRemove={() => removeLeg(ei(), "from", li())}
-                      canRemove={entry.froms.length > 1}
+                      leg={leg} side="source"
+                      onUpdate={(u) => updateLeg(ei(), "source", li(), u)}
+                      onRemove={() => removeLeg(ei(), "source", li())}
+                      canRemove={entry.sources.length > 1}
                     />
                   )}
                 </For>
@@ -136,15 +150,15 @@ function TemplateForm(props) {
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
-                  <button type="button" onClick={() => addLeg(ei(), "to")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                  <button type="button" onClick={() => addLeg(ei(), "destination")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
                 </div>
-                <For each={entry.tos}>
+                <For each={entry.destinations}>
                   {(leg, li) => (
                     <LegSelect
-                      leg={leg} side="to"
-                      onUpdate={(u) => updateLeg(ei(), "to", li(), u)}
-                      onRemove={() => removeLeg(ei(), "to", li())}
-                      canRemove={entry.tos.length > 1}
+                      leg={leg} side="destination"
+                      onUpdate={(u) => updateLeg(ei(), "destination", li(), u)}
+                      onRemove={() => removeLeg(ei(), "destination", li())}
+                      canRemove={entry.destinations.length > 1}
                     />
                   )}
                 </For>
@@ -162,20 +176,20 @@ function TemplateForm(props) {
   );
 }
 
-function EntryPreview(props) {
-  const froms = () => normalizeTemplateLegs(props.entry.froms ?? props.entry.from);
-  const tos = () => normalizeTemplateLegs(props.entry.tos ?? props.entry.to);
+function EntryPreview(props: { entry: TemplateEntry }) {
+  const sources = () => normalizeTemplateLegs(props.entry.sources);
+  const destinations = () => normalizeTemplateLegs(props.entry.destinations);
 
   return (
     <div class="space-y-1">
-      <For each={froms()}>
+      <For each={sources()}>
         {(leg) => (
           <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
             From: {ACCOUNT_LABELS[leg.accountType]}
           </span>
         )}
       </For>
-      <For each={tos()}>
+      <For each={destinations()}>
         {(leg) => (
           <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
             To: {ACCOUNT_LABELS[leg.accountType]}
@@ -187,18 +201,18 @@ function EntryPreview(props) {
 }
 
 export default function TemplatesPage() {
-  const [modal, setModal] = createSignal(null);
+  const [modal, setModal] = createSignal<null | "add" | Template>(null);
 
-  function handleSave(fields) {
+  function handleSave(fields: { name: string; entries: TemplateFormEntry[] }) {
     const m = modal();
     batch(() => {
       if (m === "add") addTemplate(fields);
-      else updateTemplate(m.id, fields);
+      else if (m) updateTemplate(m.id, fields);
       setModal(null);
     });
   }
 
-  function handleDelete(id) {
+  function handleDelete(id: string) {
     if (confirm("Delete this template?")) deleteTemplate(id);
   }
 

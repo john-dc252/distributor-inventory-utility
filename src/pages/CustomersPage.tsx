@@ -1,24 +1,37 @@
 import { createSignal, For, Show, batch } from "solid-js";
-import { state, addCustomer, updateCustomer, deleteCustomer } from "../store";
+import { state, addCustomer, updateCustomer, deleteCustomer, Customer } from "../store";
 import Modal from "../components/Modal";
 
 const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
-function CustomerForm(props) {
+interface CustomerFields {
+  name: string;
+  description: string;
+  photo: string;
+}
+
+function CustomerForm(props: {
+  initial?: Customer;
+  onSave: (fields: CustomerFields) => void;
+  onCancel: () => void;
+}) {
   const [name, setName] = createSignal(props.initial?.name ?? "");
   const [description, setDescription] = createSignal(props.initial?.description ?? "");
   const [photo, setPhoto] = createSignal(props.initial?.photo ?? "");
 
-  function handleFile(e) {
-    const file = e.target.files[0];
+  function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setPhoto(ev.target.result);
+    reader.onload = (ev) => {
+      const result = ev.target?.result;
+      if (typeof result === "string") setPhoto(result);
+    };
     reader.readAsDataURL(file);
   }
 
-  function submit(e) {
+  function submit(e: Event) {
     e.preventDefault();
     if (!name().trim()) return;
     props.onSave({ name: name().trim(), description: description().trim(), photo: photo() });
@@ -58,18 +71,18 @@ function CustomerForm(props) {
 }
 
 export default function CustomersPage() {
-  const [modal, setModal] = createSignal(null); // null | "add" | customer-object
+  const [modal, setModal] = createSignal<null | "add" | Customer>(null);
 
-  function handleSave(fields) {
+  function handleSave(fields: CustomerFields) {
     const m = modal();
     batch(() => {
       if (m === "add") addCustomer(fields);
-      else updateCustomer(m.id, fields);
+      else if (m) updateCustomer(m.id, fields);
       setModal(null);
     });
   }
 
-  function handleDelete(id) {
+  function handleDelete(id: string) {
     if (confirm("Delete this customer? Their account history will remain in transactions.")) deleteCustomer(id);
   }
 
