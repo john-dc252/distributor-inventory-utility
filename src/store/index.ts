@@ -77,11 +77,11 @@ export interface StoreState {
 export const ACCOUNT_LABELS = {
   RELAYED_TO_DISTRIBUTOR: "Relayed to Distributor",
   SUPPLIER_DIRECT: "Supplier Direct",
-  USABLE_RETURNED_S: "Usable Returned Units @S",
-  DEFECTIVE_RETURNED_S: "Defective Returned Units @S",
+  USABLE_RETURNED_S: "Usable Returned Units (SUPPLIER)",
+  DEFECTIVE_RETURNED_S: "Defective Returned Units (SUPPLIER)",
   HELD_UNITS: "Held Units",
-  USABLE_RETURNED_D: "Usable Returned Units @D",
-  DEFECTIVE_RETURNED_D: "Defective Returned Units @D",
+  USABLE_RETURNED_D: "Usable Returned Units (DISTRIBUTOR)",
+  DEFECTIVE_RETURNED_D: "Defective Returned Units (DISTRIBUTOR)",
   DELIVERED_UNITS: "Delivered Units",
   OTHER: "Other",
 };
