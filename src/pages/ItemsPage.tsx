@@ -13,16 +13,16 @@ interface ItemFields {
 }
 
 function ItemForm(props: {
-  initial?: Item | "add";
+  initial?: Item | 'add';
   onSave: (fields: ItemFields) => void;
   onCancel: () => void;
 }) {
-  const initialValues = () => props.initial !== "add" ? props.initial : undefined;
-  const [id, setId] = createSignal(initialValues()?.id ?? "");
-  const [name, setName] = createSignal(initialValues()?.name ?? "");
-  const [description, setDescription] = createSignal(initialValues()?.description ?? "");
-  const [photo, setPhoto] = createSignal(initialValues()?.photo ?? "");
-  const [idError, setIdError] = createSignal("");
+  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
+  const [id, setId] = createSignal(initialValues()?.id ?? '');
+  const [name, setName] = createSignal(initialValues()?.name ?? '');
+  const [description, setDescription] = createSignal(initialValues()?.description ?? '');
+  const [photo, setPhoto] = createSignal(initialValues()?.photo ?? '');
+  const [idError, setIdError] = createSignal('');
 
   function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
     const file = e.target.files?.[0];

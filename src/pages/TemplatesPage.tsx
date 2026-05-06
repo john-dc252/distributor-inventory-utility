@@ -53,7 +53,7 @@ function LegSelect(props: {
     <div class={`flex gap-2 items-center rounded p-2 border ${color()}`}>
       <select
         value={props.leg.accountType}
-        onChange={(e) => props.onUpdate({ accountType: e.target.value })}
+        onChange={(e) => props.onUpdate({ accountType: e.target.value as AccountType })}
         class={`flex-1 ${sel}`}
       >
         <For each={Object.entries(ACCOUNT_LABELS)}>
@@ -68,12 +68,13 @@ function LegSelect(props: {
 }
 
 function TemplateForm(props: {
-  initial?: Template;
+  initial?: Template | 'add';
   onSave: (fields: { name: string; entries: TemplateFormEntry[] }) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = createSignal(props.initial?.name ?? "");
-  const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
+  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
+  const [name, setName] = createSignal(initialValues()?.name ?? "");
+  const [entries, setEntries] = createSignal(normalizeTemplateEntries(initialValues()?.entries));
 
   function updateEntry(i: number, updated: TemplateFormEntry) {
     setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
@@ -201,24 +202,24 @@ function EntryPreview(props: { entry: TemplateEntry }) {
 }
 
 export default function TemplatesPage() {
-  const [modal, setModal] = createSignal<null | "add" | Template>(null);
+  const [modal, setModal] = createSignal<undefined | "add" | Template>();
 
   function handleSave(fields: { name: string; entries: TemplateFormEntry[] }) {
     const m = modal();
-    batch(() => {
-      if (m === "add") addTemplate(fields);
-      else if (m) updateTemplate(m.id, fields);
-      setModal(null);
-    });
+    batch(async () => {
+      if (m === "add") await addTemplate(fields);
+      else if (m) await updateTemplate(m.id, fields);
+      setModal();
+    }).then();
   }
 
   function handleDelete(id: string) {
-    if (confirm("Delete this template?")) deleteTemplate(id);
+    if (confirm("Delete this template?")) deleteTemplate(id).then();
   }
 
   function handleReset() {
     if (confirm("Reset all templates to defaults? Custom templates will be lost.")) {
-      resetTemplatesToDefault();
+      resetTemplatesToDefault().then();
     }
   }
 
@@ -239,11 +240,11 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      <Modal show={!!modal()} onClose={() => setModal(null)} title={modalTitle()}>
+      <Modal show={!!modal()} onClose={() => setModal()} title={modalTitle()}>
         <TemplateForm
           initial={isEditing() ? modal() : undefined}
           onSave={handleSave}
-          onCancel={() => setModal(null)}
+          onCancel={() => setModal()}
         />
       </Modal>
 

@@ -1,4 +1,5 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
+import {createStore, produce, reconcile} from "solid-js/store";
 import {
     ACCOUNT_LABELS,
     ACCOUNT_TYPES,
@@ -255,7 +256,7 @@ function TransactionForm(props: {
     onCancel: () => void;
 }) {
     const [templateId, setTemplateId] = createSignal(props.initialTemplateId ?? "");
-    const [entries, setEntries] = createSignal<FormEntry[]>(
+    const [entries, setEntries] = createStore<FormEntry[]>(
         props.initialTemplateId
             ? normalizeTemplateEntries(state.templates.find((t) => t.id === props.initialTemplateId)?.entries)
             : [newEntry()]
@@ -271,10 +272,10 @@ function TransactionForm(props: {
         setError("");
         const tpl = state.templates.find((t) => t.id === id);
         if (!tpl) {
-            setEntries([newEntry()]);
+            setEntries(reconcile([newEntry()]));
             return;
         }
-        setEntries(normalizeTemplateEntries(tpl.entries));
+        setEntries(reconcile(normalizeTemplateEntries(tpl.entries)));
     }
 
     function hasUserEnteredData(currentEntries: FormEntry[]) {
@@ -287,7 +288,7 @@ function TransactionForm(props: {
 
     function handleTemplateChange(id: string) {
         if (id === templateId()) return;
-        if (hasUserEnteredData(entries())) {
+        if (hasUserEnteredData(entries)) {
             const ok = confirm("Changing template will replace current entries. Continue?");
             if (!ok) return;
         }
@@ -295,13 +296,13 @@ function TransactionForm(props: {
     }
 
     function updateEntry(i: number, updated: FormEntry) {
-        setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
+        setEntries(i, reconcile(updated));
     }
 
     function submit(e: Event) {
         e.preventDefault();
         setError("");
-        const filled = entries();
+        const filled = entries;
         const err = validateEntries(filled);
         if (err) {
             setError(err);
@@ -360,17 +361,17 @@ function TransactionForm(props: {
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Entries</label>
-                    <button type="button" onClick={() => setEntries((p) => [...p, newEntry()])}
+                    <button type="button" onClick={() => setEntries(produce(d => { d.push(newEntry()); }))}
                             class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add entry
                     </button>
                 </div>
-                <For each={entries()}>
+                <For each={entries}>
                     {(entry, i) => (
                         <EntryCard
                             entry={entry}
                             onUpdate={(u) => updateEntry(i(), u)}
-                            onRemove={() => setEntries((p) => p.filter((_, idx) => idx !== i()))}
-                            canRemove={entries().length > 1}
+                            onRemove={() => setEntries(produce(d => { d.splice(i(), 1); }))}
+                            canRemove={entries.length > 1}
                         />
                     )}
                 </For>
@@ -522,7 +523,34 @@ export default function TransactionsPage() {
                                             onClick={() => setSelectedTemplateForNewTx(t.id)}
                                             class={templateChoiceBtn}
                                         >
-                                            {t.name}
+                                            <p class="font-medium mb-1">{t.name}</p>
+                                            <div class="space-y-1.5">
+                                                <For each={t.entries}>
+                                                    {(entry, i) => (
+                                                        <div>
+                                                            <Show when={t.entries.length > 1}>
+                                                                <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Entry {i() + 1}</p>
+                                                            </Show>
+                                                            <div class="space-y-1">
+                                                                <For each={normalizeTemplateLegs(entry.sources)}>
+                                                                    {(leg) => (
+                                                                        <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                                                                            From: {ACCOUNT_LABELS[leg.accountType]}
+                                                                        </span>
+                                                                    )}
+                                                                </For>
+                                                                <For each={normalizeTemplateLegs(entry.destinations)}>
+                                                                    {(leg) => (
+                                                                        <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                                                            To: {ACCOUNT_LABELS[leg.accountType]}
+                                                                        </span>
+                                                                    )}
+                                                                </For>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </For>
+                                            </div>
                                         </button>
                                     )}
                                 </For>

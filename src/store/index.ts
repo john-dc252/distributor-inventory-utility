@@ -4,19 +4,60 @@ import {createAsync} from "@solidjs/router";
 import {createEffect} from "solid-js";
 
 // ── Account type constants ────────────────────────────────────────────────────
-export const ACCOUNT_TYPES = {
-  RELAYED_TO_DISTRIBUTOR: "RELAYED_TO_DISTRIBUTOR",
-  SUPPLIER_DIRECT: "SUPPLIER_DIRECT",
-  USABLE_RETURNED_S: "USABLE_RETURNED_S",
-  DEFECTIVE_RETURNED_S: "DEFECTIVE_RETURNED_S",
-  HELD_UNITS: "HELD_UNITS",
-  USABLE_RETURNED_D: "USABLE_RETURNED_D",
-  DEFECTIVE_RETURNED_D: "DEFECTIVE_RETURNED_D",
-  DELIVERED_UNITS: "DELIVERED_UNITS",
-  OTHER: "OTHER",
+const ROOT_ACCOUNT_TYPES = {
+  DISTRIBUTOR_INVENTORY: 'DISTRIBUTOR_INVENTORY',
+  SUPPLIER_INVENTORY: 'SUPPLIER_INVENTORY',
+  CUSTOMER_INVENTORY: 'CUSTOMER_INVENTORY',
 } as const;
 
+export const ACCOUNT_TYPES = {
+  RELAYED_TO_DISTRIBUTOR: 'RELAYED_TO_DISTRIBUTOR',
+  SUPPLIER_DELIVERED: 'SUPPLIER_DELIVERED',
+  RETURNED_UNITS_S: 'RETURNED_UNITS_S',
+  USABLE_RETURNED_S: 'USABLE_RETURNED_S',
+  DEFECTIVE_RETURNED_S: 'DEFECTIVE_RETURNED_S',
+  HELD_UNITS: 'HELD_UNITS',
+  RETURNED_UNITS_D: 'RETURNED_UNITS_D',
+  USABLE_RETURNED_D: 'USABLE_RETURNED_D',
+  DEFECTIVE_RETURNED_D: 'DEFECTIVE_RETURNED_D',
+  DELIVERED_UNITS: 'DELIVERED_UNITS',
+  OTHER: 'OTHER',
+} as const;
+
+export type RootAccountType = typeof ROOT_ACCOUNT_TYPES[keyof typeof ROOT_ACCOUNT_TYPES];
 export type AccountType = typeof ACCOUNT_TYPES[keyof typeof ACCOUNT_TYPES];
+
+export class InvAccount {
+  type: AccountType | RootAccountType;
+  children: InvAccount[];
+
+
+  constructor(type: AccountType | RootAccountType, children: InvAccount[] = []) {
+    this.type = type;
+    this.children = children;
+  }
+}
+
+export const ACCOUNTS_HIERARCHY = Object.freeze([
+  new InvAccount(ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY, [
+    new InvAccount(ACCOUNT_TYPES.HELD_UNITS),
+    new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_D, [
+      new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_D),
+      new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_D),
+    ]),
+  ]),
+  new InvAccount(ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY, [
+    new InvAccount(ACCOUNT_TYPES.SUPPLIER_DELIVERED),
+    new InvAccount(ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR),
+    new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_S, [
+      new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_S),
+      new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_S),
+    ]),
+  ]),
+  new InvAccount(ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY, [
+    new InvAccount(ACCOUNT_TYPES.DELIVERED_UNITS),
+  ]),
+]);
 
 export interface Item {
   id: string;
@@ -75,15 +116,20 @@ export interface StoreState {
 }
 
 export const ACCOUNT_LABELS = {
-  RELAYED_TO_DISTRIBUTOR: "Relayed to Distributor",
-  SUPPLIER_DIRECT: "Supplier Direct",
-  USABLE_RETURNED_S: "Usable Returned Units (SUPPLIER)",
-  DEFECTIVE_RETURNED_S: "Defective Returned Units (SUPPLIER)",
-  HELD_UNITS: "Held Units",
-  USABLE_RETURNED_D: "Usable Returned Units (DISTRIBUTOR)",
-  DEFECTIVE_RETURNED_D: "Defective Returned Units (DISTRIBUTOR)",
-  DELIVERED_UNITS: "Delivered Units",
-  OTHER: "Other",
+  [ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY]: 'Distributor Inventory',
+  [ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY]: 'Supplier Inventory',
+  [ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY]: 'Customer Inventory',
+  [ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR]: 'Relayed to Distributor',
+  [ACCOUNT_TYPES.SUPPLIER_DELIVERED]: 'Delivered by Supplier',
+  [ACCOUNT_TYPES.USABLE_RETURNED_S]: 'Usable Returned Units (SUPPLIER)',
+  [ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]: 'Defective Returned Units (SUPPLIER)',
+  [ACCOUNT_TYPES.HELD_UNITS]: 'Held Units',
+  [ACCOUNT_TYPES.RETURNED_UNITS_D]: 'Returned Units',
+  [ACCOUNT_TYPES.RETURNED_UNITS_S]: 'Returned Units',
+  [ACCOUNT_TYPES.USABLE_RETURNED_D]: 'Usable Returned Units (DISTRIBUTOR)',
+  [ACCOUNT_TYPES.DEFECTIVE_RETURNED_D]: 'Defective Returned Units (DISTRIBUTOR)',
+  [ACCOUNT_TYPES.DELIVERED_UNITS]: 'Delivered Units',
+  [ACCOUNT_TYPES.OTHER]: 'Other',
 };
 
 // Accounts that require a customer selection
@@ -99,7 +145,7 @@ export const DEFAULT_TEMPLATES = [
     id: "tpl-1",
     name: "Supplier delivered units to customer",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.SUPPLIER_DIRECT}],
+      sources: [{accountType: ACCOUNT_TYPES.SUPPLIER_DELIVERED}],
       destinations: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}]
     }],
   },
@@ -247,9 +293,9 @@ export function itemIdExists(id: string, excludeId?: string) {
 }
 
 // ── Customer actions ──────────────────────────────────────────────────────────
-export function addCustomer(customer: Omit<Customer, "id" | "createdAt">) {
+export async function addCustomer(customer: Omit<Customer, "id" | "createdAt">) {
   setState("customers", (arr) => [...arr, {...customer, id: newId(), createdAt: new Date().toISOString()} as Customer]);
-  persist(["customers"]);
+  await persist(["customers"]);
 }
 
 export async function updateCustomer(id: string, fields: Partial<Customer>) {

@@ -12,13 +12,14 @@ interface CustomerFields {
 }
 
 function CustomerForm(props: {
-  initial?: Customer;
+  initial?: Customer | 'add';
   onSave: (fields: CustomerFields) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = createSignal(props.initial?.name ?? "");
-  const [description, setDescription] = createSignal(props.initial?.description ?? "");
-  const [photo, setPhoto] = createSignal(props.initial?.photo ?? "");
+  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
+  const [name, setName] = createSignal(initialValues()?.name ?? '');
+  const [description, setDescription] = createSignal(initialValues()?.description ?? '');
+  const [photo, setPhoto] = createSignal(initialValues()?.photo ?? '');
 
   function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
     const file = e.target.files?.[0];
@@ -71,15 +72,15 @@ function CustomerForm(props: {
 }
 
 export default function CustomersPage() {
-  const [modal, setModal] = createSignal<null | "add" | Customer>(null);
+  const [modal, setModal] = createSignal<undefined | "add" | Customer>();
 
   function handleSave(fields: CustomerFields) {
     const m = modal();
-    batch(() => {
-      if (m === "add") addCustomer(fields);
-      else if (m) updateCustomer(m.id, fields);
-      setModal(null);
-    });
+    batch(async () => {
+      if (m === "add") addCustomer(fields).then();
+      else if (m) updateCustomer(m.id, fields).then();
+      setModal();
+    }).then();
   }
 
   function handleDelete(id: string) {
@@ -98,11 +99,11 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <Modal show={!!modal()} onClose={() => setModal(null)} title={modalTitle()}>
+      <Modal show={!!modal()} onClose={() => setModal()} title={modalTitle()}>
         <CustomerForm
           initial={isEditing() ? modal() : undefined}
           onSave={handleSave}
-          onCancel={() => setModal(null)}
+          onCancel={() => setModal()}
         />
       </Modal>
 
