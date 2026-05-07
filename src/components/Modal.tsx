@@ -1,4 +1,4 @@
-import { Show, JSX } from "solid-js";
+import { Show, JSX, createEffect, onCleanup } from "solid-js";
 
 // Props must NOT be destructured — SolidJS props are reactive getters and
 // destructuring snapshots them, breaking Show/reactivity inside.
@@ -8,6 +8,13 @@ export default function Modal(props: {
   title: string;
   children: JSX.Element;
 }) {
+  createEffect(() => {
+    if (props.show) {
+      document.body.classList.add("overflow-hidden");
+      onCleanup(() => document.body.classList.remove("overflow-hidden"));
+    }
+  });
+
   return (
     <Show when={props.show}>
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
