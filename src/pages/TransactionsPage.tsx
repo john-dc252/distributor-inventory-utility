@@ -171,7 +171,7 @@ function ItemCombobox(props: { value: string; onSelect: (id: string) => void }) 
             </button>
             <Show when={open()}>
                 <div class="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-                <div class="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                <div class="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden text-gray-800 dark:text-gray-100">
                     <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                         <input ref={inputRef} type="text" value={query()}
                                onInput={(e) => setQuery(e.target.value)}
@@ -237,7 +237,7 @@ function CustomerCombobox(props: { value: string; onSelect: (id: string) => void
             </button>
             <Show when={open()}>
                 <div class="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-                <div class="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                <div class="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden text-gray-800 dark:text-gray-100">
                     <div class="p-2 border-b border-gray-100 dark:border-gray-700">
                         <input ref={inputRef} type="text" value={query()}
                                onInput={(e) => setQuery(e.target.value)}
