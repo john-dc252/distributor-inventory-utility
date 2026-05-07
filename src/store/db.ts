@@ -18,7 +18,7 @@ function openDB(): Promise<IDBDatabase> {
 export async function dbGet<T>(key: string): Promise<T | undefined> {
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    return new Promise<T | undefined>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, "readonly");
       const store = transaction.objectStore(STORE_NAME);
       const request = store.get(key);

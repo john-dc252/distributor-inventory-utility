@@ -1,8 +1,9 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
 import {
   ACCOUNT_LABELS, ACCOUNTS_HIERARCHY, AccountType,
-  computeBalance, Customer, InvAccount, Item, PER_CUSTOMER_ACCOUNTS, state
+  computeBalance, Customer, InvAccount, Item, isLoaded, PER_CUSTOMER_ACCOUNTS, state
 } from "../store";
+import {AccountCardSkeleton} from "../components/Skeleton";
 
 const selectCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -263,7 +264,7 @@ export default function AccountsPage() {
         </select>
       </div>
 
-      <Show when={state.items.length === 0}>
+      <Show when={isLoaded() && state.items.length === 0}>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
           <p class="text-sm text-yellow-700 dark:text-yellow-400">
             No items defined yet. Add items in the Items page before recording transactions.
@@ -271,40 +272,46 @@ export default function AccountsPage() {
         </div>
       </Show>
 
-      <div class="grid md:grid-cols-2 gap-4">
-        {/* Distributor and Supplier cards (from ACCOUNTS_HIERARCHY order) */}
-        <For each={nonCustomerRoots}>
-          {(root) => (
-            <RootCard
-              account={root}
-              items={displayItems()}
-              customers={state.customers}
-              showZero={showZero()}
-            />
-          )}
-        </For>
-
-        {/* Customer Inventory: one card per customer */}
-        <Show when={state.customers.length > 0} fallback={
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
-              {getLabel(customerRoot.type)}
-            </h2>
-            <p class="text-sm text-gray-400 dark:text-gray-500">No customers yet.</p>
-          </div>
-        }>
-          <For each={state.customers}>
-            {(customer) => (
-              <CustomerCard
-                customer={customer}
-                customerRoot={customerRoot}
+      <Show when={isLoaded()} fallback={
+        <div class="grid md:grid-cols-2 gap-4">
+          <For each={[0, 1, 2]}>{() => <AccountCardSkeleton/>}</For>
+        </div>
+      }>
+        <div class="grid md:grid-cols-2 gap-4">
+          {/* Distributor and Supplier cards (from ACCOUNTS_HIERARCHY order) */}
+          <For each={nonCustomerRoots}>
+            {(root) => (
+              <RootCard
+                account={root}
                 items={displayItems()}
+                customers={state.customers}
                 showZero={showZero()}
               />
             )}
           </For>
-        </Show>
-      </div>
+
+          {/* Customer Inventory: one card per customer */}
+          <Show when={state.customers.length > 0} fallback={
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
+                {getLabel(customerRoot.type)}
+              </h2>
+              <p class="text-sm text-gray-400 dark:text-gray-500">No customers yet.</p>
+            </div>
+          }>
+            <For each={state.customers}>
+              {(customer) => (
+                <CustomerCard
+                  customer={customer}
+                  customerRoot={customerRoot}
+                  items={displayItems()}
+                  showZero={showZero()}
+                />
+              )}
+            </For>
+          </Show>
+        </div>
+      </Show>
     </div>
   );
 }

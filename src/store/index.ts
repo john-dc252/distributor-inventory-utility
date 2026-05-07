@@ -1,7 +1,7 @@
 import {createStore, unwrap} from "solid-js/store";
 import {dbGet, dbSet} from "./db";
 import {createAsync} from "@solidjs/router";
-import {createEffect} from "solid-js";
+import {createEffect, createSignal} from "solid-js";
 
 // ── Account type constants ────────────────────────────────────────────────────
 const ROOT_ACCOUNT_TYPES = {
@@ -248,13 +248,25 @@ const [state, setState] = createStore<StoreState>({
   transactions: [],
 });
 
+export const [isLoaded, setIsLoaded] = createSignal(false);
+
+function suspend(t: number) {
+  return new Promise<void>(resolve => setTimeout(() => resolve(), t));
+}
+
 export function loadStoredData() {
-  const getStoredData = createAsync<StoreState>(async () => ({
-    items: await load<Item[]>("items", []),
-    customers: await load<Customer[]>("customers", []),
-    templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
-    transactions: await load<Transaction[]>("transactions", []),
-  }));
+  const getStoredData = createAsync<StoreState>(async () => {
+    const data = {
+      items: await load<Item[]>("items", []),
+      customers: await load<Customer[]>("customers", []),
+      templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
+      transactions: await load<Transaction[]>("transactions", []),
+    };
+
+    await suspend(1500);
+
+    return data;
+  });
 
   createEffect(() => {
     const data = getStoredData();
@@ -262,6 +274,7 @@ export function loadStoredData() {
       const unwrapped = unwrap(data);
       console.log('Loaded stored data', unwrapped);
       setState(unwrapped);
+      setIsLoaded(true);
     }
   });
 }

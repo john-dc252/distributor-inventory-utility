@@ -1,6 +1,7 @@
 import {batch, createEffect, createSignal, For, Show} from "solid-js";
-import {addItem, deleteItem, Item, itemIdExists, state, updateItem} from "../store";
+import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from "../store";
 import Modal from "../components/Modal";
+import {ItemCardSkeleton} from "../components/Skeleton";
 
 const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
@@ -149,6 +150,11 @@ export default function ItemsPage() {
         />
       </Modal>
 
+      <Show when={isLoaded()} fallback={
+        <div class="space-y-3">
+          <For each={[0, 1, 2]}>{() => <ItemCardSkeleton/>}</For>
+        </div>
+      }>
       <div class="space-y-3">
         <For each={state.items}
              fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No items yet. Add one above.</p>}>
@@ -188,6 +194,7 @@ export default function ItemsPage() {
           )}
         </For>
       </div>
+      </Show>
     </div>
   );
 }

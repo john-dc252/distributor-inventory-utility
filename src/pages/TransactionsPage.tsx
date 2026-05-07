@@ -1,4 +1,5 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
+import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {
     ACCOUNT_LABELS,
@@ -8,6 +9,7 @@ import {
     Customer,
     deleteTransaction,
     Entry,
+    isLoaded,
     Item,
     Leg,
     PER_CUSTOMER_ACCOUNTS,
@@ -599,6 +601,11 @@ export default function TransactionsPage() {
             </div>
 
             {/* History list */}
+            <Show when={isLoaded()} fallback={
+                <div class="space-y-3">
+                    <For each={[0, 1, 2]}>{() => <TransactionCardSkeleton/>}</For>
+                </div>
+            }>
             <Show
                 when={filtered().length > 0}
                 fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No transactions yet.</p>}
@@ -631,6 +638,7 @@ export default function TransactionsPage() {
                         )}
                     </For>
                 </div>
+            </Show>
             </Show>
         </div>
     );

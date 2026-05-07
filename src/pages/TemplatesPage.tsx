@@ -3,9 +3,10 @@ import {
   state, addTemplate, updateTemplate, deleteTemplate,
   resetTemplatesToDefault, ACCOUNT_TYPES, ACCOUNT_LABELS,
   PER_CUSTOMER_ACCOUNTS, DEFAULT_TEMPLATES,
-  AccountType, Template, TemplateEntry
+  AccountType, Template, TemplateEntry, isLoaded
 } from "../store";
 import Modal from "../components/Modal";
+import {TemplateCardSkeleton} from "../components/Skeleton";
 
 const sel = "border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const selFull = `w-full ${sel}`;
@@ -248,6 +249,11 @@ export default function TemplatesPage() {
         />
       </Modal>
 
+      <Show when={isLoaded()} fallback={
+        <div class="space-y-3">
+          <For each={[0, 1, 2]}>{() => <TemplateCardSkeleton/>}</For>
+        </div>
+      }>
       <div class="space-y-3">
         <For each={state.templates} fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No templates.</p>}>
           {(tpl) => (
@@ -280,6 +286,7 @@ export default function TemplatesPage() {
           )}
         </For>
       </div>
+      </Show>
     </div>
   );
 }
