@@ -1,6 +1,7 @@
 import {createEffect, createMemo, createSignal, For, Show} from "solid-js";
 import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
+import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {
     ACCOUNT_LABELS,
     ACCOUNT_TYPES,
@@ -317,7 +318,7 @@ function LegRow(props: {
             </div>
             <Show when={props.canRemove}>
                 <button type="button" onClick={props.onRemove}
-                        class="text-gray-400 hover:text-red-500 text-xs pb-1.5">✕
+                        class="text-gray-400 hover:text-red-500 pb-1.5"><XIcon class="w-3 h-3"/>
                 </button>
             </Show>
         </div>
@@ -363,7 +364,7 @@ function EntryCard(props: {
                 </div>
                 <Show when={props.canRemove}>
                     <button type="button" onClick={props.onRemove}
-                            class="text-xs text-red-400 hover:text-red-600 shrink-0">Remove entry
+                            class="text-xs text-red-400 hover:text-red-600 shrink-0 inline-flex items-center gap-1"><XIcon class="w-3 h-3"/>Remove entry
                     </button>
                 </Show>
             </div>
@@ -372,7 +373,7 @@ function EntryCard(props: {
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
                     <button type="button" onClick={() => addLeg("source")}
-                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add
+                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>add
                     </button>
                 </div>
                 <For each={props.entry.sources}>
@@ -389,7 +390,7 @@ function EntryCard(props: {
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
                     <button type="button" onClick={() => addLeg("destination")}
-                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add
+                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>add
                     </button>
                 </div>
                 <For each={props.entry.destinations}>
@@ -540,7 +541,7 @@ function TransactionForm(props: {
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Entries</label>
                     <button type="button"
                             onClick={() => setEntries(produce(d => { d.push(newEntry()); }))}
-                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add entry
+                            class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>Add entry
                     </button>
                 </div>
                 <For each={entries}>
@@ -565,10 +566,9 @@ function TransactionForm(props: {
             </Show>
 
             <div class="flex gap-2 justify-end pt-1">
-                <button type="button" onClick={props.onCancel} class={secondaryBtn}>Cancel</button>
+                <button type="button" onClick={props.onCancel} class={`${secondaryBtn} inline-flex items-center gap-1.5`}><XIcon/>Cancel</button>
                 <button type="submit"
-                        class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">Record
-                    Transaction
+                        class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 inline-flex items-center gap-1.5"><CheckIcon/>Record Transaction
                 </button>
             </div>
         </form>
@@ -624,7 +624,7 @@ function TemplatePicker(props: {
                 </For>
             </div>
             <div class="flex justify-end">
-                <button type="button" onClick={props.onCancel} class={secondaryBtn}>Cancel</button>
+                <button type="button" onClick={props.onCancel} class={`${secondaryBtn} inline-flex items-center gap-1.5`}><XIcon/>Cancel</button>
             </div>
         </div>
     );
@@ -786,13 +786,13 @@ export default function TransactionsPage() {
                 <div class="flex gap-2 flex-wrap">
                     <button
                         onClick={() => setModalState({kind: "customer-pick-template", initialCustomerId: ""})}
-                        class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">
-                        + Customer Transaction
+                        class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
+                        <PlusIcon/>Customer Transaction
                     </button>
                     <button
                         onClick={() => setModalState({kind: "non-customer-pick-template"})}
-                        class="px-3 py-1.5 text-sm rounded border border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
-                        + Non-Customer Transaction
+                        class="px-3 py-1.5 text-sm rounded border border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 inline-flex items-center gap-1.5">
+                        <PlusIcon/>Non-Customer Transaction
                     </button>
                 </div>
             </div>
@@ -897,7 +897,7 @@ export default function TransactionsPage() {
                                             </p>
                                         </div>
                                         <button onClick={() => handleDelete(tx.id)}
-                                                class="text-xs text-red-400 hover:text-red-600 shrink-0">Delete
+                                                class="text-xs text-red-400 hover:text-red-600 shrink-0 inline-flex items-center gap-1"><TrashIcon class="w-3 h-3"/>Delete
                                         </button>
                                     </div>
                                     <div class="space-y-2">

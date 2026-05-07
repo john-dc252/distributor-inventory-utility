@@ -7,6 +7,7 @@ import {
 } from "../store";
 import Modal from "../components/Modal";
 import {TemplateCardSkeleton} from "../components/Skeleton";
+import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon} from "../components/Icons";
 
 const sel = "border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const selFull = `w-full ${sel}`;
@@ -63,7 +64,7 @@ function LegSelect(props: {
         </For>
       </select>
       <Show when={props.canRemove}>
-        <button type="button" onClick={props.onRemove} class="text-gray-400 hover:text-red-500 text-xs">✕</button>
+        <button type="button" onClick={props.onRemove} class="text-gray-400 hover:text-red-500"><XIcon class="w-3 h-3"/></button>
       </Show>
     </div>
   );
@@ -118,7 +119,7 @@ function TemplateForm(props: {
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <label class={labelCls}>Entries</label>
-          <button type="button" onClick={() => setEntries((prev) => [...prev, newEntry()])} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ Add entry</button>
+          <button type="button" onClick={() => setEntries((prev) => [...prev, newEntry()])} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>Add entry</button>
         </div>
 
         <For each={entries()}>
@@ -127,7 +128,7 @@ function TemplateForm(props: {
               <div class="flex justify-between items-center">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Entry {ei() + 1}</span>
                 <Show when={entries().length > 1}>
-                  <button type="button" onClick={() => setEntries((prev) => prev.filter((_, idx) => idx !== ei()))} class="text-xs text-red-400 hover:text-red-600">Remove</button>
+                  <button type="button" onClick={() => setEntries((prev) => prev.filter((_, idx) => idx !== ei()))} class="text-xs text-red-400 hover:text-red-600 inline-flex items-center gap-1"><XIcon class="w-3 h-3"/>Remove</button>
                 </Show>
               </div>
 
@@ -135,7 +136,7 @@ function TemplateForm(props: {
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
-                  <button type="button" onClick={() => addLeg(ei(), "source")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                  <button type="button" onClick={() => addLeg(ei(), "source")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>add</button>
                 </div>
                 <For each={entry.sources}>
                   {(leg, li) => (
@@ -153,7 +154,7 @@ function TemplateForm(props: {
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
-                  <button type="button" onClick={() => addLeg(ei(), "destination")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ add</button>
+                  <button type="button" onClick={() => addLeg(ei(), "destination")} class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PlusIcon class="w-3 h-3"/>add</button>
                 </div>
                 <For each={entry.destinations}>
                   {(leg, li) => (
@@ -172,8 +173,8 @@ function TemplateForm(props: {
       </div>
 
       <div class="flex gap-2 justify-end pt-1">
-        <button type="button" onClick={props.onCancel} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-        <button type="submit" class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">Save</button>
+        <button type="button" onClick={props.onCancel} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5"><XIcon/>Cancel</button>
+        <button type="submit" class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5"><CheckIcon/>Save</button>
       </div>
     </form>
   );
@@ -233,11 +234,11 @@ export default function TemplatesPage() {
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Transaction Templates</h1>
         <div class="flex gap-2">
-          <button onClick={handleReset} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-            Reset to defaults
+          <button onClick={handleReset} class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5">
+            <RefreshIcon/>Reset to defaults
           </button>
-          <button onClick={() => setModal("add")} class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">
-            + New Template
+          <button onClick={() => setModal("add")} class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
+            <PlusIcon/>New Template
           </button>
         </div>
       </div>
@@ -267,8 +268,8 @@ export default function TemplatesPage() {
                   </Show>
                 </div>
                 <div class="flex gap-2 shrink-0">
-                  <button onClick={() => setModal(tpl)} class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
-                  <button onClick={() => handleDelete(tpl.id)} class="text-sm text-red-500 dark:text-red-400 hover:underline">Delete</button>
+                  <button onClick={() => setModal(tpl)} class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"><PencilIcon/>Edit</button>
+                  <button onClick={() => handleDelete(tpl.id)} class="text-sm text-red-500 dark:text-red-400 hover:underline inline-flex items-center gap-1"><TrashIcon/>Delete</button>
                 </div>
               </div>
               <div class="space-y-1.5">
