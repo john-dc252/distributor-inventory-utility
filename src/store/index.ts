@@ -381,7 +381,7 @@ const isMatchingLeg = (leg: Leg, accountType: AccountType, customerId: string | 
 
 // Define a helper to sum the quantities of matching legs
 const sumMatchingLegs = (legs: Leg[] | undefined, accountType: AccountType, customerId: string | null) =>
-  (legs ?? [])
+  (legs ?? []).values()
     .filter(leg => isMatchingLeg(leg, accountType, customerId))
     .reduce((sum, leg) => sum + leg.qty, 0);
 
@@ -392,21 +392,14 @@ export function computeBalance(
   itemId: string | null,
   transactions: Transaction[]
 ): number {
-  // 1. Flatten all entries across all transactions
-  const allEntries = transactions.values().flatMap(tx => tx.entries);
-
-  // 2. Filter out entries that don't match the itemId (if provided)
-  const relevantEntries = allEntries.filter(entry =>
-    itemId == null || entry.itemId === itemId
-  );
-
-  // 3. Calculate the net balance
-  return relevantEntries.reduce((balance, entry) => {
-    const totalOut = sumMatchingLegs(entry.sources, accountType, customerId);
-    const totalIn = sumMatchingLegs(entry.destinations, accountType, customerId);
-
-    return balance + totalIn - totalOut;
-  }, 0);
+  return transactions.values()
+    .flatMap(tx => tx.entries)
+    .filter(entry => itemId == null || entry.itemId === itemId)
+    .reduce((balance, entry) => {
+      const totalOut = sumMatchingLegs(entry.sources, accountType, customerId);
+      const totalIn = sumMatchingLegs(entry.destinations, accountType, customerId);
+      return balance + totalIn - totalOut;
+    }, 0);
 }
 
 export {state};

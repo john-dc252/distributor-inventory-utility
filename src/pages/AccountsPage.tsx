@@ -53,23 +53,15 @@ function ItemRows(props: {
 }) {
   const rows = createMemo(() => {
     const isSupplierAccount = () => SUPPLIER_INVENTORY_SUBACCOUNTS.has(props.accountType);
-    const all = props.items.values()
+    return props.items.values()
       .map(item => ({
           item,
           bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
         })
       )
-      .map(summary => {
-        if (isSupplierAccount()) {
-          return {
-            ...summary,
-            bal: -summary.bal,
-          };
-        }
-
-        return summary;
-      }).toArray();
-    return props.showZero ? all : all.filter(r => r.bal !== 0);
+      .map(summary => isSupplierAccount() ? { ...summary, bal: -summary.bal } : summary)
+      .filter(r => props.showZero || r.bal !== 0)
+      .toArray();
   });
 
   return (

@@ -21,12 +21,13 @@ function newEntry(): TemplateFormEntry { return { sources: [newLeg()], destinati
 
 function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-  const normalized = legsArray
+  const normalized = legsArray.values()
     .map((leg) => {
       const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
       return { accountType: accountType ?? ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR };
     })
-    .filter((leg) => leg.accountType);
+    .filter((leg) => leg.accountType)
+    .toArray();
 
   return normalized.length > 0 ? normalized : [newLeg()];
 }

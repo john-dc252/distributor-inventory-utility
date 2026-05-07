@@ -48,7 +48,7 @@ function newEntry(): FormEntry {
 
 function normalizeTemplateLegs(legs: any): FormLeg[] {
     const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-    const normalized = legsArray
+    const normalized = legsArray.values()
         .map((leg) => {
             const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
             return {
@@ -57,7 +57,8 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
                 qty: leg?.qty ?? "",
             };
         })
-        .filter((leg) => leg.accountType);
+        .filter((leg) => leg.accountType)
+        .toArray();
 
     return normalized.length > 0 ? normalized : [newLeg()];
 }
