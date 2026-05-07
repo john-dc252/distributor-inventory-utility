@@ -1,5 +1,5 @@
 import {createEffect, createSignal, JSX, Show} from "solid-js";
-import {A, Navigate, Route, Router} from "@solidjs/router";
+import {A, HashRouter, Navigate, Route} from "@solidjs/router";
 import CustomersPage from "./pages/CustomersPage";
 import AccountsPage from "./pages/AccountsPage";
 import TransactionsPage from "./pages/TransactionsPage";
@@ -93,13 +93,13 @@ export default function App() {
   loadStoredData();
 
   return (
-    <Router root={Layout}>
+    <HashRouter root={Layout}>
       <Route path="/" component={AccountsPage}/>
       <Route path="/items" component={ItemsPage}/>
       <Route path="/customers" component={CustomersPage}/>
       <Route path="/transactions" component={TransactionsPage}/>
       <Route path="/templates" component={TemplatesPage}/>
-      <Route path="*" component={() => (<Navigate href="/"/>)}/>
-    </Router>
+      <Route path="/*" component={() => (<Navigate href="/"/>)}/>
+    </HashRouter>
   );
 }
