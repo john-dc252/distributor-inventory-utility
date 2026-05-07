@@ -18,8 +18,6 @@ import {AccountCardSkeleton} from "../components/Skeleton";
 import {CustomerAvatar} from "../components/CustomerAvatar";
 import {ItemCombobox} from "../components/ItemCombobox";
 
-const selectCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
-
 function getLabel(type: string): string {
   return (ACCOUNT_LABELS as Record<string, string>)[type] ?? type;
 }
@@ -82,52 +80,91 @@ function LeafBlock(props: {
 }) {
   const acctType = props.account.type as AccountType;
   const iterCustomers = PER_CUSTOMER_ACCOUNTS.has(acctType) && props.fixedCustomerId === null;
+  const isNeg = SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(acctType);
+
+  function getBal(customerId: string | null, itemId: string): number {
+    const raw = computeBalance(acctType, customerId, itemId, state.transactions);
+    return isNeg ? 0 + -raw : raw;
+  }
+
+  function balCls(bal: number) {
+    return `text-sm font-mono font-semibold shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`;
+  }
+
+  // When a specific item is selected (showZero=true, items.length=1), collapse to inline label+balance
+  const compact = () => props.showZero && props.items.length === 1;
+
+  const labelCls = () => props.depth === 1
+    ? "border-l-2 border-indigo-400 dark:border-indigo-500 pl-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
+    : "pl-1 text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5";
 
   return (
     <div class={`mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
-      <div class={props.depth === 1
-        ? "border-l-2 border-indigo-400 dark:border-indigo-500 pl-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
-        : "pl-1 text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5"
+      <Show when={compact() && !iterCustomers} fallback={
+        <>
+          <div class={labelCls()}>
+            {getLabel(props.account.type)}
+          </div>
+          <div class={props.depth === 1 ? "ml-2" : "ml-3"}>
+            <Show when={iterCustomers} fallback={
+              <ItemRows
+                accountType={acctType}
+                customerId={props.fixedCustomerId}
+                items={props.items}
+                showZero={props.showZero}
+              />
+            }>
+              <Show when={props.customers.length > 0} fallback={
+                <p class="text-xs text-gray-400 dark:text-gray-500 italic">No customers yet.</p>
+              }>
+                <For each={props.customers}>
+                  {(c) => (
+                    <Show when={compact()
+                      ? getBal(c.id, props.items[0].id) !== 0
+                      : props.items.some(item => computeBalance(acctType, c.id, item.id, state.transactions) !== 0)
+                    }>
+                      <Show when={compact()} fallback={
+                        <div class="mb-3">
+                          <div class="flex items-center gap-1.5 mb-1">
+                            <CustomerAvatar customer={c} size="sm"/>
+                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</p>
+                          </div>
+                          <div class="ml-2">
+                            <ItemRows
+                              accountType={acctType}
+                              customerId={c.id}
+                              items={props.items}
+                              showZero={props.showZero}
+                            />
+                          </div>
+                        </div>
+                      }>
+                        <div
+                          class="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                          <span class="flex items-center gap-1.5">
+                            <CustomerAvatar customer={c} size="sm"/>
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</span>
+                          </span>
+                          <span class={balCls(getBal(c.id, props.items[0].id))}>
+                            {getBal(c.id, props.items[0].id).toLocaleString()}
+                          </span>
+                        </div>
+                      </Show>
+                    </Show>
+                  )}
+                </For>
+              </Show>
+            </Show>
+          </div>
+        </>
       }>
-        {getLabel(props.account.type)}
-      </div>
-      <div class={props.depth === 1 ? "ml-2" : "ml-3"}>
-        <Show when={iterCustomers} fallback={
-          <ItemRows
-            accountType={acctType}
-            customerId={props.fixedCustomerId}
-            items={props.items}
-            showZero={props.showZero}
-          />
-        }>
-          <Show when={props.customers.length > 0} fallback={
-            <p class="text-xs text-gray-400 dark:text-gray-500 italic">No customers yet.</p>
-          }>
-            <For each={props.customers}>
-              {(c) => (
-                <Show when={props.items.some(item =>
-                  computeBalance(acctType, c.id, item.id, state.transactions) !== 0
-                )}>
-                  <div class="mb-3">
-                    <div class="flex items-center gap-1.5 mb-1">
-                      <CustomerAvatar customer={c} size="sm"/>
-                      <p class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</p>
-                    </div>
-                    <div class="ml-2">
-                      <ItemRows
-                        accountType={acctType}
-                        customerId={c.id}
-                        items={props.items}
-                        showZero={props.showZero}
-                      />
-                    </div>
-                  </div>
-                </Show>
-              )}
-            </For>
-          </Show>
-        </Show>
-      </div>
+        <div class={`flex justify-between items-center ${labelCls()}`}>
+          <span>{getLabel(props.account.type)}</span>
+          <span class={balCls(getBal(props.fixedCustomerId, props.items[0].id))}>
+            {getBal(props.fixedCustomerId, props.items[0].id).toLocaleString()}
+          </span>
+        </div>
+      </Show>
     </div>
   );
 }
