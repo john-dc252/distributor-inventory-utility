@@ -188,14 +188,14 @@ function EntryPreview(props: { entry: TemplateEntry }) {
     <div class="space-y-1">
       <For each={sources()}>
         {(leg) => (
-          <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+          <span class="inline-block text-xs px-2 py-1 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
             From: {ACCOUNT_LABELS[leg.accountType]}
           </span>
         )}
       </For>
       <For each={destinations()}>
         {(leg) => (
-          <span class="inline-block text-xs px-2 py-0.5 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+          <span class="inline-block text-xs px-2 py-1 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
             To: {ACCOUNT_LABELS[leg.accountType]}
           </span>
         )}

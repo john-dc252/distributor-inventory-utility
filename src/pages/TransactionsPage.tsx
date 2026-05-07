@@ -161,7 +161,7 @@ function ItemCombobox(props: { value: string; onSelect: (id: string) => void }) 
                     class={`${sel} w-full flex items-center justify-between gap-2 text-left`}>
                 <Show when={selected()} fallback={<span class="text-gray-400 text-sm">— select item —</span>}>
                     <span class="flex items-center gap-1.5 min-w-0">
-                        <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded shrink-0">
+                        <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-1 rounded shrink-0">
                             {selected()!.id}
                         </span>
                         <span class="text-sm truncate">{selected()!.name}</span>
@@ -185,7 +185,7 @@ function ItemCombobox(props: { value: string; onSelect: (id: string) => void }) 
                                 {(item) => (
                                     <button type="button" onClick={() => select(item.id)}
                                             class={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 ${props.value === item.id ? "bg-indigo-50 dark:bg-indigo-900/30 font-medium" : ""}`}>
-                                        <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded shrink-0">
+                                        <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-1 rounded shrink-0">
                                             {item.id}
                                         </span>
                                         <span class="truncate">{item.name}</span>
@@ -602,14 +602,14 @@ function TemplatePicker(props: {
                                             <div class="flex flex-wrap gap-1">
                                                 <For each={normalizeTemplateLegs(entry.sources)}>
                                                     {(leg) => (
-                                                        <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                                                        <span class="inline-block text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
                                                             From: {(ACCOUNT_LABELS as Record<string, string>)[leg.accountType]}
                                                         </span>
                                                     )}
                                                 </For>
                                                 <For each={normalizeTemplateLegs(entry.destinations)}>
                                                     {(leg) => (
-                                                        <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                                        <span class="inline-block text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
                                                             To: {(ACCOUNT_LABELS as Record<string, string>)[leg.accountType]}
                                                         </span>
                                                     )}
@@ -637,7 +637,7 @@ function LegPill(props: {
 }) {
     const label = (ACCOUNT_LABELS as Record<string, string>)[props.leg.accountType] ?? props.leg.accountType;
     return (
-        <span class={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+        <span class={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
             props.side === "source"
                 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
                 : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
@@ -660,7 +660,7 @@ function EntryBlock(props: {entry: Entry; items: Item[]}) {
                 <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{props.entry.itemId}</span>
             }>
                 <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                    <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">{item()?.id ?? "-"}</span>
+                    <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{item()?.id ?? "-"}</span>
                     {item()?.name ?? "-"}
                 </span>
             </Show>

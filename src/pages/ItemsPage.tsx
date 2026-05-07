@@ -104,7 +104,8 @@ function ItemForm(props: {
                 class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5">
           <XIcon/>Cancel
         </button>
-        <button type="submit" class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
+        <button type="submit"
+                class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
           <CheckIcon/>Save
         </button>
       </div>
@@ -158,47 +159,49 @@ export default function ItemsPage() {
           <For each={[0, 1, 2]}>{() => <ItemCardSkeleton/>}</For>
         </div>
       }>
-      <div class="space-y-3">
-        <For each={state.items}
-             fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No items yet. Add one above.</p>}>
-          {(item) => (
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
-              <Show
-                when={item.photo}
-                fallback={
-                  <div
-                    class="w-12 h-12 rounded bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shrink-0">
-                    {item.name[0].toUpperCase()}
-                  </div>
-                }
-              >
-                <img src={item.photo} alt={item.name}
-                     class="w-12 h-12 rounded object-cover border dark:border-gray-600 shrink-0"/>
-              </Show>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="font-semibold text-gray-800 dark:text-gray-100">{item.name}</p>
-                  <span
-                    class="text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{item.id}</span>
-                </div>
-                <Show when={item.description}>
-                  <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{item.description}</p>
+        <div class="space-y-3">
+          <For each={state.items}
+               fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No items yet. Add one above.</p>}>
+            {(item) => (
+              <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
+                <Show
+                  when={item.photo}
+                  fallback={
+                    <div
+                      class="w-12 h-12 rounded bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-lg shrink-0">
+                      {item.name[0].toUpperCase()}
+                    </div>
+                  }
+                >
+                  <img src={item.photo} alt={item.name}
+                       class="w-12 h-12 rounded object-cover border dark:border-gray-600 shrink-0"/>
                 </Show>
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-col gap-2">
+                    <div>
+                      <p class="font-semibold text-gray-800 dark:text-gray-100">{item.name}</p>
+                      <span
+                        class="text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 p-1 rounded">{item.id}</span>
+                    </div>
+                    <Show when={item.description}>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{item.description}</p>
+                    </Show>
+                  </div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <button onClick={() => setModal(item)}
+                          class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
+                    <PencilIcon/>Edit
+                  </button>
+                  <button onClick={() => handleDelete(item.id)}
+                          class="text-sm text-red-500 dark:text-red-400 hover:underline inline-flex items-center gap-1">
+                    <TrashIcon/>Delete
+                  </button>
+                </div>
               </div>
-              <div class="flex gap-2 shrink-0">
-                <button onClick={() => setModal(item)}
-                        class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
-                  <PencilIcon/>Edit
-                </button>
-                <button onClick={() => handleDelete(item.id)}
-                        class="text-sm text-red-500 dark:text-red-400 hover:underline inline-flex items-center gap-1">
-                  <TrashIcon/>Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </For>
-      </div>
+            )}
+          </For>
+        </div>
       </Show>
     </div>
   );

@@ -46,7 +46,7 @@ function ItemRows(props: {
 
   return (
     <Show when={rows().length > 0} fallback={
-      <p class="text-xs text-gray-400 dark:text-gray-500 py-0.5 italic">No entries</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 py-1 italic">No entries</p>
     }>
       <For each={rows()}>
         {({item, bal}) => (
@@ -54,7 +54,7 @@ function ItemRows(props: {
             class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
             <span class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 min-w-0">
               <span
-                class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded shrink-0">
+                class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-1 rounded shrink-0">
                 {item.id}
               </span>
               <span class="truncate">{item.name}</span>

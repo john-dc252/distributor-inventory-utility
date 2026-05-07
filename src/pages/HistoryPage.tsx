@@ -6,7 +6,7 @@ const inputCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 
 function LegPill(props: { leg: Leg & { customerName?: string | null }; side: "source" | "destination" }) {
   const label = ACCOUNT_LABELS[props.leg.accountType as keyof typeof ACCOUNT_LABELS] ?? props.leg.accountType;
   return (
-    <span class={`inline-block text-xs px-2 py-0.5 rounded-full ${
+    <span class={`inline-block text-xs px-2 py-1 rounded-full ${
       props.side === "source"
         ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
         : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
@@ -37,7 +37,7 @@ function EntryBlock(props: { entry: Entry; items: Item[]; customers: Customer[] 
     <div class="border border-gray-100 dark:border-gray-700 rounded p-2 space-y-1">
       <Show when={item()}>
         <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">{item()?.id ?? '-'}</span>
+          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{item()?.id ?? '-'}</span>
           {item()?.name ?? '-'}
         </span>
       </Show>
