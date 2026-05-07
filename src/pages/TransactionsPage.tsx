@@ -1,4 +1,4 @@
-import {createMemo, createSignal, For, Show} from "solid-js";
+import {createEffect, createMemo, createSignal, For, Show} from "solid-js";
 import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {
@@ -49,6 +49,9 @@ interface FormEntry {
     destinations: FormLeg[];
 }
 
+// Keys that are true leaf account types (excludes root types like DISTRIBUTOR_INVENTORY)
+const leafAccountTypeKeys = new Set<string>(Object.values(ACCOUNT_TYPES));
+
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
     return {accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR, customerId: "", qty: ""};
@@ -96,24 +99,24 @@ function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ""):
     }));
 }
 
-function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To"): string | null {
+function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To", skipCustomerValidation = false): string | null {
     for (const [i, leg] of legs.entries()) {
         const qty = Number(leg.qty);
         if (!leg.qty || isNaN(qty) || qty <= 0)
             return `Entry ${entryNum}, ${side} ${i + 1}: quantity must be a positive number.`;
-        if (PER_CUSTOMER_ACCOUNTS.has(leg.accountType) && !leg.customerId)
+        if (!skipCustomerValidation && PER_CUSTOMER_ACCOUNTS.has(leg.accountType) && !leg.customerId)
             return `Entry ${entryNum}, ${side} ${i + 1}: select a customer.`;
     }
     return null;
 }
 
-function validateEntries(entries: FormEntry[]): string | null {
+function validateEntries(entries: FormEntry[], skipCustomerValidation = false): string | null {
     for (const [i, entry] of entries.entries()) {
         const n = i + 1;
         if (!entry.itemId) return `Entry ${n}: select an item.`;
-        const fromErr = validateLegs(entry.sources, n, "From");
+        const fromErr = validateLegs(entry.sources, n, "From", skipCustomerValidation);
         if (fromErr) return fromErr;
-        const toErr = validateLegs(entry.destinations, n, "To");
+        const toErr = validateLegs(entry.destinations, n, "To", skipCustomerValidation);
         if (toErr) return toErr;
     }
     return null;
@@ -264,6 +267,7 @@ function CustomerCombobox(props: { value: string; onSelect: (id: string) => void
 function LegRow(props: {
     leg: FormLeg;
     side: "source" | "destination";
+    mode: "customer" | "non-customer";
     onUpdate: (leg: FormLeg) => void;
     onRemove: () => void;
     canRemove: boolean;
@@ -281,18 +285,24 @@ function LegRow(props: {
         ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
         : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
 
+    const accountOptions = Object.entries(ACCOUNT_LABELS).filter(([key]) => {
+        if (!leafAccountTypeKeys.has(key)) return false;
+        if (props.mode === "non-customer" && PER_CUSTOMER_ACCOUNTS.has(key as AccountType)) return false;
+        return true;
+    });
+
     return (
         <div class={`flex gap-2 items-end flex-wrap rounded p-2 border ${sideColor}`}>
             <div class="flex-1 min-w-36">
                 <label class={lbl}>Account</label>
                 <select value={props.leg.accountType}
                         onChange={(e) => setField("accountType", e.target.value)} class={selFull}>
-                    <For each={Object.entries(ACCOUNT_LABELS)}>
+                    <For each={accountOptions}>
                         {([key, label]) => <option value={key}>{label}</option>}
                     </For>
                 </select>
             </div>
-            <Show when={needsCustomer()}>
+            <Show when={needsCustomer() && props.mode !== "customer"}>
                 <div class="flex-1 min-w-44">
                     <label class={lbl}>Customer *</label>
                     <CustomerCombobox value={props.leg.customerId}
@@ -317,6 +327,7 @@ function LegRow(props: {
 // ── Entry card ────────────────────────────────────────────────────────────────
 function EntryCard(props: {
     entry: FormEntry;
+    mode: "customer" | "non-customer";
     onUpdate: (entry: FormEntry) => void;
     onRemove: () => void;
     canRemove: boolean;
@@ -366,7 +377,7 @@ function EntryCard(props: {
                 </div>
                 <For each={props.entry.sources}>
                     {(leg, i) => (
-                        <LegRow leg={leg} side="source"
+                        <LegRow leg={leg} side="source" mode={props.mode}
                                 onUpdate={(u) => updateLeg("source", i(), u)}
                                 onRemove={() => removeLeg("source", i())}
                                 canRemove={props.entry.sources.length > 1}/>
@@ -383,7 +394,7 @@ function EntryCard(props: {
                 </div>
                 <For each={props.entry.destinations}>
                     {(leg, i) => (
-                        <LegRow leg={leg} side="destination"
+                        <LegRow leg={leg} side="destination" mode={props.mode}
                                 onUpdate={(u) => updateLeg("destination", i(), u)}
                                 onRemove={() => removeLeg("destination", i())}
                                 canRemove={props.entry.destinations.length > 1}/>
@@ -396,6 +407,7 @@ function EntryCard(props: {
 
 // ── Transaction form ──────────────────────────────────────────────────────────
 function TransactionForm(props: {
+    mode: "customer" | "non-customer";
     initialTemplateId?: string;
     initialCustomerId?: string;
     templates: Template[];
@@ -403,11 +415,12 @@ function TransactionForm(props: {
     onCancel: () => void;
 }) {
     const [templateId, setTemplateId] = createSignal(props.initialTemplateId ?? "");
+    const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? "");
     const [entries, setEntries] = createStore<FormEntry[]>(
         props.initialTemplateId
             ? normalizeTemplateEntries(
                 state.templates.find(t => t.id === props.initialTemplateId)?.entries,
-                props.initialCustomerId ?? ""
+                props.mode === "customer" ? (props.initialCustomerId ?? "") : ""
             )
             : [newEntry()]
     );
@@ -417,13 +430,29 @@ function TransactionForm(props: {
 
     const selectedTemplate = createMemo(() => props.templates.find(t => t.id === templateId()));
 
+    // Sync transaction-level customer to all per-customer legs
+    createEffect(() => {
+        const cid = txCustomerId();
+        if (props.mode !== "customer") return;
+        setEntries(produce(d => {
+            d.forEach(entry => {
+                entry.sources.forEach(leg => {
+                    if (PER_CUSTOMER_ACCOUNTS.has(leg.accountType)) leg.customerId = cid;
+                });
+                entry.destinations.forEach(leg => {
+                    if (PER_CUSTOMER_ACCOUNTS.has(leg.accountType)) leg.customerId = cid;
+                });
+            });
+        }));
+    });
+
     function loadTemplate(id: string) {
         setTemplateId(id);
         setError("");
         const tpl = props.templates.find(t => t.id === id);
         setEntries(reconcile(
             tpl
-                ? normalizeTemplateEntries(tpl.entries, props.initialCustomerId ?? "")
+                ? normalizeTemplateEntries(tpl.entries, props.mode === "customer" ? txCustomerId() : "")
                 : [newEntry()]
         ));
     }
@@ -445,7 +474,11 @@ function TransactionForm(props: {
     function submit(e: Event) {
         e.preventDefault();
         setError("");
-        const err = validateEntries(entries);
+        if (props.mode === "customer" && !txCustomerId()) {
+            setError("Select a customer for this transaction.");
+            return;
+        }
+        const err = validateEntries(entries, props.mode === "customer");
         if (err) { setError(err); return; }
         addTransaction({
             templateId: templateId() || null,
@@ -478,6 +511,13 @@ function TransactionForm(props: {
                 </div>
             </Show>
 
+            <Show when={props.mode === "customer"}>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer *</label>
+                    <CustomerCombobox value={txCustomerId()} onSelect={setTxCustomerId}/>
+                </div>
+            </Show>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Use Template
                     (optional)</label>
@@ -505,7 +545,7 @@ function TransactionForm(props: {
                 </div>
                 <For each={entries}>
                     {(entry, i) => (
-                        <EntryCard entry={entry}
+                        <EntryCard entry={entry} mode={props.mode}
                                    onUpdate={(u) => setEntries(i(), reconcile(u))}
                                    onRemove={() => setEntries(produce(d => { d.splice(i(), 1); }))}
                                    canRemove={entries.length > 1}/>
@@ -651,6 +691,34 @@ function EntryBlock(props: {entry: Entry; items: Item[]; customers: Customer[]})
     );
 }
 
+// ── Transaction customer header summary ───────────────────────────────────────
+function TxCustomers(props: { tx: { entries: Entry[] }; customers: Customer[] }) {
+    const customers = () => {
+        const ids = new Set<string>();
+        props.tx.entries.forEach(e => {
+            [...(e.sources ?? []), ...(e.destinations ?? [])].forEach(l => {
+                if (l.customerId) ids.add(l.customerId);
+            });
+        });
+        return [...ids].map(id => props.customers.find(c => c.id === id)).filter((c): c is Customer => !!c);
+    };
+
+    return (
+        <Show when={customers().length > 0}>
+            <div class="flex items-center gap-2 flex-wrap mt-0.5">
+                <For each={customers()}>
+                    {(c) => (
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <CustomerAvatar customer={c} size="xs"/>
+                            {c.name}
+                        </span>
+                    )}
+                </For>
+            </div>
+        </Show>
+    );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -751,6 +819,7 @@ export default function TransactionsPage() {
                 <Show when={customerFormState()}>
                     {(ms) => (
                         <TransactionForm
+                            mode="customer"
                             initialTemplateId={ms().templateId}
                             initialCustomerId={ms().initialCustomerId}
                             templates={customerTemplates()}
@@ -777,6 +846,7 @@ export default function TransactionsPage() {
                 <Show when={nonCustomerFormState()}>
                     {(ms) => (
                         <TransactionForm
+                            mode="non-customer"
                             initialTemplateId={ms().templateId}
                             templates={nonCustomerTemplates()}
                             onSave={close}
@@ -821,7 +891,8 @@ export default function TransactionsPage() {
                                     <div class="flex items-start justify-between gap-2 mb-3">
                                         <div>
                                             <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.templateName ?? "Manual"}</p>
-                                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                            <TxCustomers tx={tx} customers={state.customers}/>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                                                 {tx.date} &middot; recorded {new Date(tx.createdAt).toLocaleString()}
                                             </p>
                                         </div>

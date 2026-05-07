@@ -2,6 +2,7 @@ import { createSignal, For, Show, batch } from "solid-js";
 import { state, addCustomer, updateCustomer, deleteCustomer, Customer, isLoaded } from "../store";
 import Modal from "../components/Modal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
+import {useNavigate} from "@solidjs/router";
 
 const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
@@ -73,6 +74,7 @@ function CustomerForm(props: {
 }
 
 export default function CustomersPage() {
+  const navigate = useNavigate();
   const [modal, setModal] = createSignal<undefined | "add" | Customer>();
 
   function handleSave(fields: CustomerFields) {
@@ -134,6 +136,11 @@ export default function CustomersPage() {
                 </Show>
               </div>
               <div class="flex gap-2 shrink-0">
+                <button
+                  onClick={() => navigate(`/transactions?customerTx=${customer.id}`)}
+                  class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                  New Transaction
+                </button>
                 <button onClick={() => setModal(customer)} class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">Edit</button>
                 <button onClick={() => handleDelete(customer.id)} class="text-sm text-red-500 dark:text-red-400 hover:underline">Delete</button>
               </div>
