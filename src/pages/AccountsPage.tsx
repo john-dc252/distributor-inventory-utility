@@ -16,6 +16,7 @@ import {
 } from "../store";
 import {AccountCardSkeleton} from "../components/Skeleton";
 import {CustomerAvatar} from "../components/CustomerAvatar";
+import {ItemCombobox} from "../components/ItemCombobox";
 
 const selectCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -39,7 +40,7 @@ function ItemRows(props: {
           bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
         })
       )
-      .map(summary => isNegativeSupplierAccount() ? { ...summary, bal: -summary.bal } : summary)
+      .map(summary => isNegativeSupplierAccount() ? {...summary, bal: -summary.bal} : summary)
       .filter(r => props.showZero || r.bal !== 0)
       .toArray();
   });
@@ -109,7 +110,7 @@ function LeafBlock(props: {
                 )}>
                   <div class="mb-3">
                     <div class="flex items-center gap-1.5 mb-1">
-                      <CustomerAvatar customer={c} size="sm" />
+                      <CustomerAvatar customer={c} size="sm"/>
                       <p class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</p>
                     </div>
                     <div class="ml-2">
@@ -233,7 +234,7 @@ function CustomerCard(props: {
   return (
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
       <div class="flex items-center gap-3 mb-3">
-        <CustomerAvatar customer={props.customer} size="md" />
+        <CustomerAvatar customer={props.customer} size="md"/>
         <div>
           <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide leading-tight">
             {props.customer.name}
@@ -279,18 +280,11 @@ export default function AccountsPage() {
       <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Account Balances</h1>
 
       {/* Item filter */}
-      <div class="flex items-center gap-2 mb-6">
+      <div class="flex items-center gap-2 w-full sm:w-2/3 lg:w-2/5 mb-6">
         <label class="text-sm text-gray-600 dark:text-gray-400">Item:</label>
-        <select
-          value={selectedItemId()}
-          onChange={(e) => setSelectedItemId(e.target.value)}
-          class={selectCls}
-        >
-          <option value="">All Items</option>
-          <For each={state.items}>
-            {(item) => <option value={item.id}>{item.name} ({item.id})</option>}
-          </For>
-        </select>
+        <div class="flex-1">
+          <ItemCombobox value={selectedItemId()} onSelect={id => setSelectedItemId(id)} allowAll />
+        </div>
       </div>
 
       <Show when={isLoaded() && state.items.length === 0}>

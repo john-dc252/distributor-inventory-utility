@@ -3,9 +3,7 @@ import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} fr
 import Modal from "../components/Modal";
 import {ItemCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
-
-const inputCls = "w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
-const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+import {inputClsFull as inputCls, labelCls} from "../components/styles";
 
 interface ItemFields {
   id: string;
