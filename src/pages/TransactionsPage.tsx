@@ -630,9 +630,9 @@ function TemplatePicker(props: {
     );
 }
 
-// ── History: leg pill with customer avatar ────────────────────────────────────
+// ── History: leg pill ─────────────────────────────────────────────────────────
 function LegPill(props: {
-    leg: Leg & { customer?: Customer | null };
+    leg: Leg;
     side: "source" | "destination";
 }) {
     const label = (ACCOUNT_LABELS as Record<string, string>)[props.leg.accountType] ?? props.leg.accountType;
@@ -642,32 +642,17 @@ function LegPill(props: {
                 ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
                 : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
         }`}>
-            {props.side === "source" ? "From" : "To"}: {label}
-            <Show when={props.leg.customer}>
-                {(c) => (
-                    <span class="inline-flex items-center gap-0.5">
-                        (<CustomerAvatar customer={c()} size="xs"/>
-                        <span>{c().name}</span>)
-                    </span>
-                )}
-            </Show>
-            × {props.leg.qty}
+            {props.side === "source" ? "From" : "To"}: {label} × {props.leg.qty}
         </span>
     );
 }
 
-function EntryBlock(props: {entry: Entry; items: Item[]; customers: Customer[]}) {
+function EntryBlock(props: {entry: Entry; items: Item[]}) {
     const item = () => props.items.find(it => it.id === props.entry.itemId);
-    const resolvedLegs = (legs: Leg[]) =>
-        (Array.isArray(legs) ? legs : legs ? [legs] : []).map(leg => {
-            const legObj = typeof leg === "string" ? {accountType: leg as AccountType, qty: 0} : leg;
-            return {
-                ...legObj,
-                customer: legObj?.customerId
-                    ? (props.customers.find(c => c.id === legObj.customerId) ?? null)
-                    : null,
-            };
-        });
+    const normLegs = (legs: Leg[]) =>
+        (Array.isArray(legs) ? legs : legs ? [legs] : []).map(leg =>
+            typeof leg === "string" ? {accountType: leg as AccountType, qty: 0} : leg
+        );
 
     return (
         <div class="border border-gray-100 dark:border-gray-700 rounded p-2 space-y-1">
@@ -680,10 +665,10 @@ function EntryBlock(props: {entry: Entry; items: Item[]; customers: Customer[]})
                 </span>
             </Show>
             <div class="flex flex-wrap gap-1">
-                <For each={resolvedLegs(props.entry.sources ?? [])}>
+                <For each={normLegs(props.entry.sources ?? [])}>
                     {(leg) => <LegPill leg={leg} side="source"/>}
                 </For>
-                <For each={resolvedLegs(props.entry.destinations ?? [])}>
+                <For each={normLegs(props.entry.destinations ?? [])}>
                     {(leg) => <LegPill leg={leg} side="destination"/>}
                 </For>
             </div>
@@ -902,8 +887,7 @@ export default function TransactionsPage() {
                                     </div>
                                     <div class="space-y-2">
                                         <For each={tx.entries}>
-                                            {(entry) => <EntryBlock entry={entry} customers={state.customers}
-                                                                     items={state.items}/>}
+                                            {(entry) => <EntryBlock entry={entry} items={state.items}/>}
                                         </For>
                                     </div>
                                     <Show when={tx.note}>
