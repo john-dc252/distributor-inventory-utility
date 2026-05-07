@@ -40,7 +40,7 @@ function ItemRows(props: {
           bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
         })
       )
-      .map(summary => isNegativeSupplierAccount() ? {...summary, bal: -summary.bal} : summary)
+      .map(summary => isNegativeSupplierAccount() ? {...summary, bal: 0 + -summary.bal} : summary)
       .filter(r => props.showZero || r.bal !== 0)
       .toArray();
   });
