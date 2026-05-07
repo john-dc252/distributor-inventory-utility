@@ -22,6 +22,28 @@ function getLabel(type: string): string {
   return (ACCOUNT_LABELS as Record<string, string>)[type] ?? type;
 }
 
+function CustomerAvatar(props: { customer: Customer; size: "sm" | "md" }) {
+  return (
+    <Show when={props.customer.photo} fallback={
+      <div class={props.size === "md"
+        ? "w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm shrink-0"
+        : "w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-[10px] shrink-0"
+      }>
+        {props.customer.name[0]?.toUpperCase()}
+      </div>
+    }>
+      <img
+        src={props.customer.photo!}
+        alt={props.customer.name}
+        class={props.size === "md"
+          ? "w-9 h-9 rounded-full object-cover border dark:border-gray-600 shrink-0"
+          : "w-5 h-5 rounded-full object-cover border dark:border-gray-600 shrink-0"
+        }
+      />
+    </Show>
+  );
+}
+
 // ── Per-item balance rows ─────────────────────────────────────────────────────
 function ItemRows(props: {
   accountType: AccountType;
@@ -114,7 +136,10 @@ function LeafBlock(props: {
                   computeBalance(acctType, c.id, item.id, state.transactions) !== 0
                 )}>
                   <div class="mb-3">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{c.name}</p>
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <CustomerAvatar customer={c} size="sm" />
+                      <p class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</p>
+                    </div>
                     <div class="ml-2">
                       <ItemRows
                         accountType={acctType}
@@ -235,10 +260,15 @@ function CustomerCard(props: {
 }) {
   return (
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-      <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide">
-        {props.customer.name}
-      </h2>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{getLabel(CUSTOMER_INVENTORY_ACCOUNT.type)}</p>
+      <div class="flex items-center gap-3 mb-3">
+        <CustomerAvatar customer={props.customer} size="md" />
+        <div>
+          <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide leading-tight">
+            {props.customer.name}
+          </h2>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{getLabel(CUSTOMER_INVENTORY_ACCOUNT.type)}</p>
+        </div>
+      </div>
       <div class="border-t border-gray-100 dark:border-gray-700">
         <For each={CUSTOMER_INVENTORY_ACCOUNT.children}>
           {(child) => (
