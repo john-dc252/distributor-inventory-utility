@@ -1,7 +1,18 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
 import {
-  ACCOUNT_LABELS, ACCOUNTS_HIERARCHY, AccountType,
-  computeBalance, Customer, InvAccount, Item, isLoaded, PER_CUSTOMER_ACCOUNTS, state
+  ACCOUNT_LABELS,
+  AccountType,
+  computeBalance,
+  Customer,
+  CUSTOMER_INVENTORY_ACCOUNT,
+  DISTRIBUTOR_INVENTORY_ACCOUNT,
+  InvAccount,
+  isLoaded,
+  Item,
+  PER_CUSTOMER_ACCOUNTS,
+  state,
+  SUPPLIER_INVENTORY_ACCOUNT,
+  SUPPLIER_INVENTORY_SUBACCOUNTS
 } from "../store";
 import {AccountCardSkeleton} from "../components/Skeleton";
 
@@ -19,10 +30,23 @@ function ItemRows(props: {
   showZero: boolean;
 }) {
   const rows = createMemo(() => {
-    const all = props.items.map(item => ({
-      item,
-      bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
-    }));
+    const isSupplierAccount = () => SUPPLIER_INVENTORY_SUBACCOUNTS.has(props.accountType);
+    const all = props.items.values()
+      .map(item => ({
+          item,
+          bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
+        })
+      )
+      .map(summary => {
+        if (isSupplierAccount()) {
+          return {
+            ...summary,
+            bal: -summary.bal,
+          };
+        }
+
+        return summary;
+      }).toArray();
     return props.showZero ? all : all.filter(r => r.bal !== 0);
   });
 
@@ -32,14 +56,17 @@ function ItemRows(props: {
     }>
       <For each={rows()}>
         {({item, bal}) => (
-          <div class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+          <div
+            class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
             <span class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 min-w-0">
-              <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded shrink-0">
+              <span
+                class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded shrink-0">
                 {item.id}
               </span>
               <span class="truncate">{item.name}</span>
             </span>
-            <span class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
+            <span
+              class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
               {bal.toLocaleString()}
             </span>
           </div>
@@ -118,7 +145,8 @@ function GroupBlock(props: {
 }) {
   return (
     <div class={`mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
-      <div class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
+      <div
+        class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
         {getLabel(props.account.type)}
       </div>
       <For each={props.account.children}>
@@ -179,7 +207,8 @@ function RootCard(props: {
 }) {
   return (
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-      <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide pb-2 mb-1 border-b border-gray-100 dark:border-gray-700">
+      <h2
+        class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide pb-2 mb-1 border-b border-gray-100 dark:border-gray-700">
         {getLabel(props.account.type)}
       </h2>
       <For each={props.account.children}>
@@ -201,7 +230,6 @@ function RootCard(props: {
 // ── Customer inventory card (one per customer) ────────────────────────────────
 function CustomerCard(props: {
   customer: Customer;
-  customerRoot: InvAccount;
   items: Item[];
   showZero: boolean;
 }) {
@@ -210,9 +238,9 @@ function CustomerCard(props: {
       <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide">
         {props.customer.name}
       </h2>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{getLabel(props.customerRoot.type)}</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{getLabel(CUSTOMER_INVENTORY_ACCOUNT.type)}</p>
       <div class="border-t border-gray-100 dark:border-gray-700">
-        <For each={props.customerRoot.children}>
+        <For each={CUSTOMER_INVENTORY_ACCOUNT.children}>
           {(child) => (
             <AccountBlock
               account={child}
@@ -242,8 +270,7 @@ export default function AccountsPage() {
     return found ? [found] : [];
   });
 
-  const customerRoot = ACCOUNTS_HIERARCHY.find(a => a.type === "CUSTOMER_INVENTORY")!;
-  const nonCustomerRoots = ACCOUNTS_HIERARCHY.filter(a => a.type !== "CUSTOMER_INVENTORY");
+  const nonCustomerRoots = [DISTRIBUTOR_INVENTORY_ACCOUNT, SUPPLIER_INVENTORY_ACCOUNT];
 
   return (
     <div>
@@ -265,7 +292,8 @@ export default function AccountsPage() {
       </div>
 
       <Show when={isLoaded() && state.items.length === 0}>
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
+        <div
+          class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
           <p class="text-sm text-yellow-700 dark:text-yellow-400">
             No items defined yet. Add items in the Items page before recording transactions.
           </p>
@@ -294,7 +322,7 @@ export default function AccountsPage() {
           <Show when={state.customers.length > 0} fallback={
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
               <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
-                {getLabel(customerRoot.type)}
+                {getLabel(CUSTOMER_INVENTORY_ACCOUNT.type)}
               </h2>
               <p class="text-sm text-gray-400 dark:text-gray-500">No customers yet.</p>
             </div>
@@ -303,7 +331,6 @@ export default function AccountsPage() {
               {(customer) => (
                 <CustomerCard
                   customer={customer}
-                  customerRoot={customerRoot}
                   items={displayItems()}
                   showZero={showZero()}
                 />

@@ -31,33 +31,54 @@ export class InvAccount {
   type: AccountType | RootAccountType;
   children: InvAccount[];
 
-
   constructor(type: AccountType | RootAccountType, children: InvAccount[] = []) {
     this.type = type;
     this.children = children;
+    Object.freeze(this);
   }
 }
 
-export const ACCOUNTS_HIERARCHY = Object.freeze([
-  new InvAccount(ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY, [
+export const DISTRIBUTOR_INVENTORY_ACCOUNT = new InvAccount(
+  ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY, [
     new InvAccount(ACCOUNT_TYPES.HELD_UNITS),
     new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_D, [
       new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_D),
       new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_D),
     ]),
-  ]),
-  new InvAccount(ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY, [
+  ]
+);
+
+export const SUPPLIER_INVENTORY_ACCOUNT = new InvAccount(
+  ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY, [
     new InvAccount(ACCOUNT_TYPES.SUPPLIER_DELIVERED),
     new InvAccount(ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR),
     new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_S, [
       new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_S),
       new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_S),
     ]),
-  ]),
-  new InvAccount(ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY, [
+  ]
+);
+export const SUPPLIER_INVENTORY_SUBACCOUNTS = getDescendants(SUPPLIER_INVENTORY_ACCOUNT);
+
+export const CUSTOMER_INVENTORY_ACCOUNT = new InvAccount(
+  ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY, [
     new InvAccount(ACCOUNT_TYPES.DELIVERED_UNITS),
-  ]),
-]);
+  ]
+);
+
+function getDescendants(account: InvAccount) {
+  const acctStack = account.children.slice(0);
+  const descendantSet = new Set<AccountType>();
+  while (acctStack.length > 0) {
+    const acct = acctStack.pop();
+    if (acct) {
+      descendantSet.add(acct.type as AccountType);
+      acctStack.push(...acct.children);
+    }
+  }
+
+  return Object.freeze(descendantSet);
+}
 
 export interface Item {
   id: string;
