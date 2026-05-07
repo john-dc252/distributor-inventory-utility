@@ -58,7 +58,11 @@ export const SUPPLIER_INVENTORY_ACCOUNT = new InvAccount(
     ]),
   ]
 );
-export const SUPPLIER_INVENTORY_SUBACCOUNTS = getDescendants(SUPPLIER_INVENTORY_ACCOUNT);
+const SUPPLIER_RETURNED_ACCOUNTS = new Set<AccountType>([ACCOUNT_TYPES.USABLE_RETURNED_S, ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]);
+export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
+  getDescendants(SUPPLIER_INVENTORY_ACCOUNT)
+    .filter(acct => !SUPPLIER_RETURNED_ACCOUNTS.has(acct))
+));
 
 export const CUSTOMER_INVENTORY_ACCOUNT = new InvAccount(
   ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY, [
@@ -66,18 +70,15 @@ export const CUSTOMER_INVENTORY_ACCOUNT = new InvAccount(
   ]
 );
 
-function getDescendants(account: InvAccount) {
+function* getDescendants(account: InvAccount) {
   const acctStack = account.children.slice(0);
-  const descendantSet = new Set<AccountType>();
   while (acctStack.length > 0) {
     const acct = acctStack.pop();
     if (acct) {
-      descendantSet.add(acct.type as AccountType);
+      yield acct.type as AccountType;
       acctStack.push(...acct.children);
     }
   }
-
-  return Object.freeze(descendantSet);
 }
 
 export interface Item {

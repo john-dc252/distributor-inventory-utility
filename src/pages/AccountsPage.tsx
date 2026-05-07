@@ -12,7 +12,7 @@ import {
   PER_CUSTOMER_ACCOUNTS,
   state,
   SUPPLIER_INVENTORY_ACCOUNT,
-  SUPPLIER_INVENTORY_SUBACCOUNTS
+  SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS
 } from "../store";
 import {AccountCardSkeleton} from "../components/Skeleton";
 import {CustomerAvatar} from "../components/CustomerAvatar";
@@ -32,14 +32,14 @@ function ItemRows(props: {
   showZero: boolean;
 }) {
   const rows = createMemo(() => {
-    const isSupplierAccount = () => SUPPLIER_INVENTORY_SUBACCOUNTS.has(props.accountType);
+    const isNegativeSupplierAccount = () => SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(props.accountType);
     return props.items.values()
       .map(item => ({
           item,
           bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
         })
       )
-      .map(summary => isSupplierAccount() ? { ...summary, bal: -summary.bal } : summary)
+      .map(summary => isNegativeSupplierAccount() ? { ...summary, bal: -summary.bal } : summary)
       .filter(r => props.showZero || r.bal !== 0)
       .toArray();
   });
