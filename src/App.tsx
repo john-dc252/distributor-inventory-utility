@@ -66,7 +66,7 @@ function Layout(props: { children?: JSX.Element }) {
       </Show>
       <nav class="bg-indigo-700 dark:bg-indigo-900 text-white shadow">
         <div class="max-w-6xl mx-auto px-4 flex items-center gap-1 h-14">
-          <span class="font-bold text-lg mr-4 shrink-0">Distributor Utility</span>
+          <span class="font-bold text-lg mr-4 shrink-0">Distributor Inventory Utility</span>
           {NAV.map((n) => (
             <A
               href={n.href}
