@@ -15,6 +15,7 @@ import {
   SUPPLIER_INVENTORY_SUBACCOUNTS
 } from "../store";
 import {AccountCardSkeleton} from "../components/Skeleton";
+import {CustomerAvatar} from "../components/CustomerAvatar";
 
 const selectCls = "border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -22,27 +23,6 @@ function getLabel(type: string): string {
   return (ACCOUNT_LABELS as Record<string, string>)[type] ?? type;
 }
 
-function CustomerAvatar(props: { customer: Customer; size: "sm" | "md" }) {
-  return (
-    <Show when={props.customer.photo} fallback={
-      <div class={props.size === "md"
-        ? "w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm shrink-0"
-        : "w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-[10px] shrink-0"
-      }>
-        {props.customer.name[0]?.toUpperCase()}
-      </div>
-    }>
-      <img
-        src={props.customer.photo!}
-        alt={props.customer.name}
-        class={props.size === "md"
-          ? "w-9 h-9 rounded-full object-cover border dark:border-gray-600 shrink-0"
-          : "w-5 h-5 rounded-full object-cover border dark:border-gray-600 shrink-0"
-        }
-      />
-    </Show>
-  );
-}
 
 // ── Per-item balance rows ─────────────────────────────────────────────────────
 function ItemRows(props: {
