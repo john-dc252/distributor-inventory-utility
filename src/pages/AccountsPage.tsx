@@ -95,6 +95,10 @@ function LeafBlock(props: {
     return props.items.some(item => computeBalance(acctType, c.id, item.id, state.transactions) !== 0);
   }
 
+  function anyCustomerHasQtyForAnyItem() {
+    return props.customers.some(customerHasQtyForAnyItem);
+  }
+
   // When a specific item is selected (showZero=true, items.length=1), collapse to inline label+balance
   const compact = () => props.showZero && props.items.length === 1;
 
@@ -121,12 +125,12 @@ function LeafBlock(props: {
               <Show when={props.customers.length > 0} fallback={
                 <p class="text-xs text-gray-400 dark:text-gray-500 italic">No customers yet.</p>
               }>
+                <Show when={!anyCustomerHasQtyForAnyItem()}>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 italic">No entries</p>
+                </Show>
                 <For each={props.customers}>
                   {(c) => (
-                    <Show when={compact()
-                      ? getBal(c.id, props.items[0].id) !== 0
-                      : customerHasQtyForAnyItem(c)
-                    }>
+                    <Show when={customerHasQtyForAnyItem(c)}>
                       <Show when={compact()} fallback={
                         <div class="mb-3">
                           <div class="flex items-center gap-1.5 mb-1">
