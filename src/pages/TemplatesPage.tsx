@@ -1,6 +1,6 @@
 import {createSignal, For, Show} from "solid-js";
 import {
-  AccountType,
+  AccountId,
   addTemplate,
   DEFAULT_TEMPLATES,
   deleteTemplate,
@@ -21,7 +21,7 @@ import {inputClsFull as inputCls, labelCls} from "../components/styles";
 import {AccountCombobox} from "../components/AccountCombobox";
 
 interface TemplateFormLeg {
-  accountType?: AccountType;
+  accountId?: AccountId;
 }
 
 interface TemplateFormEntry {
@@ -30,7 +30,7 @@ interface TemplateFormEntry {
 }
 
 function newLeg(): TemplateFormLeg {
-  return {accountType: undefined};
+  return {accountId: undefined};
 }
 
 function newEntry(): TemplateFormEntry {
@@ -41,10 +41,10 @@ function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = legsArray.values()
     .map((leg) => {
-      const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
-      return {accountType: accountType};
+      const accountId = (typeof leg === "string" ? leg : leg?.accountId) as AccountId;
+      return {accountId: accountId};
     })
-    .filter((leg) => leg.accountType)
+    .filter((leg) => leg.accountId)
     .toArray();
 
   return normalized.length > 0 ? normalized : [newLeg()];
@@ -73,8 +73,8 @@ function LegSelect(props: {
     <div class={`flex gap-2 items-center rounded px-2 py-1.5 border ${color()}`}>
       <div class="flex-1 min-w-0">
         <AccountCombobox
-          value={props.leg.accountType}
-          onSelect={(type) => props.onUpdate({accountType: type})}
+          value={props.leg.accountId}
+          onSelect={(type) => props.onUpdate({accountId: type})}
         />
       </div>
       <button type="button" onClick={props.onRemove} disabled={!props.canRemove}
@@ -242,11 +242,11 @@ function EntryPreview(props: { entry: TemplateEntry }) {
           <>
             {src
               ? <span
-                class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountType)}</span>
+                class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountId)}</span>
               : <span/>}
             {dst
               ? <span
-                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountType)}</span>
+                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountId)}</span>
               : <span/>}
           </>
         )}

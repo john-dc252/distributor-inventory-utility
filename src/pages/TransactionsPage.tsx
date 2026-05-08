@@ -3,7 +3,7 @@ import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {
-  AccountType,
+  AccountId,
   addTransaction,
   Customer,
   deleteTransaction,
@@ -11,7 +11,6 @@ import {
   getAccountLabel,
   isLoaded,
   isPerCustomer,
-  PREDEFINED_ACCOUNT_IDS,
   state,
   Template,
   Transaction,
@@ -38,19 +37,19 @@ const templateChoiceBtn = `w-full text-left ${inputCls} hover:bg-gray-50 dark:ho
 
 // ── Form types ────────────────────────────────────────────────────────────────
 interface FormLegBase {
-  accountType?: AccountType;
+  accountId?: AccountId;
   customerId?: string;
   qty: string | number;
 }
 
 interface InitializedFormLeg extends FormLegBase {
-  accountType: AccountType;
+  accountId: AccountId;
   customerId: string;
   qty: string | number;
 }
 
 interface UnsetFormLeg extends FormLegBase {
-  accountType: undefined;
+  accountId: undefined;
 }
 
 type FormLeg = InitializedFormLeg | UnsetFormLeg;
@@ -63,7 +62,7 @@ interface FormEntry {
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
-  return {accountType: undefined, qty: ""};
+  return {accountId: undefined, qty: ""};
 }
 
 function newEntry(): FormEntry {
@@ -74,14 +73,14 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
   const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = arr.values()
     .map((leg: any) => {
-      const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
+      const accountId = (typeof leg === "string" ? leg : leg?.accountId) as AccountId;
       return {
-        accountType: accountType,
+        accountId: accountId,
         customerId: leg?.customerId ?? "",
         qty: leg?.qty ?? "",
       };
     })
-    .filter((leg: FormLeg) => leg.accountType)
+    .filter((leg: FormLeg) => leg.accountId)
     .toArray();
   return normalized.length > 0 ? normalized : [newLeg()];
 }
@@ -89,7 +88,7 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
 function applyInitialCustomer(legs: FormLeg[], customerId: string): FormLeg[] {
   if (!customerId) return legs;
   return legs.map(leg =>
-    isPerCustomer(leg.accountType) ? {...leg, customerId} : leg
+    isPerCustomer(leg.accountId) ? {...leg, customerId} : leg
   );
 }
 
@@ -110,12 +109,12 @@ function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ""):
 
 function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To", skipCustomerValidation = false): string | null {
   for (const [i, leg] of legs.entries()) {
-    if (!leg.accountType)
+    if (!leg.accountId)
       return `Entry ${entryNum}, ${side} ${i + 1}: select an account.`;
     const qty = Number(leg.qty);
     if (!leg.qty || isNaN(qty) || qty <= 0)
       return `Entry ${entryNum}, ${side} ${i + 1}: quantity must be a positive number.`;
-    if (!skipCustomerValidation && isPerCustomer(leg.accountType) && !leg.customerId)
+    if (!skipCustomerValidation && isPerCustomer(leg.accountId) && !leg.customerId)
       return `Entry ${entryNum}, ${side} ${i + 1}: select a customer.`;
   }
   return null;
@@ -140,7 +139,7 @@ function validateEntries(entries: FormEntry[], skipCustomerValidation = false): 
 // ── Template classification ───────────────────────────────────────────────────
 function isCustomerTemplate(t: Template): boolean {
   return t.entries.some(e =>
-    [...e.sources, ...e.destinations].some(leg => isPerCustomer(leg.accountType))
+    [...e.sources, ...e.destinations].some(leg => isPerCustomer(leg.accountId))
   );
 }
 
@@ -153,11 +152,11 @@ function LegRow(props: {
   onRemove: () => void;
   canRemove: boolean;
 }) {
-  const needsCustomer = () => isPerCustomer(props.leg.accountType);
+  const needsCustomer = () => isPerCustomer(props.leg.accountId);
 
   function setField(field: keyof FormLeg, value: string) {
     const updated = {...props.leg, [field]: value};
-    if (field === "accountType" && !isPerCustomer(value as AccountType))
+    if (field === "accountId" && !isPerCustomer(value as AccountId))
       updated.customerId = "";
     props.onUpdate(updated);
   }
@@ -169,8 +168,8 @@ function LegRow(props: {
   return (
     <div class={`flex gap-2 items-center flex-wrap rounded px-2 py-1.5 border ${sideColor}`}>
       <div class="flex-1 min-w-40">
-        <AccountCombobox value={props.leg.accountType}
-                         onSelect={(type) => setField("accountType", type)}
+        <AccountCombobox value={props.leg.accountId}
+                         onSelect={(type) => setField("accountId", type)}
                          excludePerCustomer={props.mode === "non-customer"}/>
       </div>
       <Show when={needsCustomer() && props.mode !== "customer"}>
@@ -345,13 +344,13 @@ function TransactionForm(props: {
       entries: entries.map(en => ({
         itemId: en.itemId,
         sources: en.sources.map(l => ({
-          accountType: l.accountType!,
-          customerId: isPerCustomer(l.accountType) ? txCustomer : null,
+          accountId: l.accountId!,
+          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
           qty: Number(l.qty),
         })),
         destinations: en.destinations.map(l => ({
-          accountType: l.accountType!,
-          customerId: isPerCustomer(l.accountType) ? txCustomer : null,
+          accountId: l.accountId!,
+          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
           qty: Number(l.qty),
         })),
       })),
@@ -535,11 +534,11 @@ function TemplatePicker(props: {
                             <>
                               {src
                                 ? <span
-                                  class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountType)}</span>
+                                  class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountId)}</span>
                                 : <span/>}
                               {dst
                                 ? <span
-                                  class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountType)}</span>
+                                  class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountId)}</span>
                                 : <span/>}
                             </>
                           ))}
@@ -719,7 +718,7 @@ export default function TransactionsPage() {
         [...(e.sources ?? []), ...(e.destinations ?? [])].some(l => l.customerId === cid));
       const matchItem = !iid || tx.entries.some(e => e.itemId === iid);
       const matchAccount = !aid || tx.entries.some(e =>
-        [...(e.sources ?? []), ...(e.destinations ?? [])].some(l => l.accountType === aid));
+        [...(e.sources ?? []), ...(e.destinations ?? [])].some(l => l.accountId === aid));
       return matchSearch && matchCustomer && matchItem && matchAccount;
     });
   });

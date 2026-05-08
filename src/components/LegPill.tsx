@@ -5,7 +5,7 @@ export function LegPill(props: {
   side: "source" | "destination";
   hideLabel?: boolean;
 }) {
-  const label = () => getAccountLabel(props.leg.accountType);
+  const label = () => getAccountLabel(props.leg.accountId);
   return (
     <span class={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
       props.side === "source"

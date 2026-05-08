@@ -1,5 +1,5 @@
 import {For, Show} from "solid-js";
-import {AccountType, Customer, Entry, Item, Leg} from "../store";
+import {AccountId, Customer, Entry, Item, Leg} from "../store";
 import {LegPill} from "./LegPill";
 
 export function EntryBlock(props: {
@@ -12,7 +12,7 @@ export function EntryBlock(props: {
   const resolveLegs = (legs: Leg[]) => {
     const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
     return arr.map((leg) => {
-      const legObj = typeof leg === "string" ? {accountType: leg as AccountType, qty: 0} : leg;
+      const legObj = typeof leg === "string" ? {accountId: leg as AccountId, qty: 0} : leg;
       return {
         ...legObj,
         customerName: legObj.customerId && props.customers

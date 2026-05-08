@@ -73,7 +73,7 @@ export namespace Account {
   }
 }
 
-export type AccountType = string; // stores account UUID
+export type AccountId = string; // stores account UUID
 
 // ── Stable UUIDs for predefined accounts ──────────────────────────────────────
 export const PREDEFINED_ACCOUNT_IDS = {
@@ -164,7 +164,7 @@ export interface Customer {
 }
 
 export interface Leg {
-  accountType: AccountType; // stores account UUID
+  accountId: AccountId; // stores account UUID
   customerId?: string | null;
   qty: number;
 }
@@ -186,8 +186,8 @@ export interface Transaction {
 }
 
 export interface TemplateEntry {
-  sources: { accountType?: AccountType }[];
-  destinations: { accountType?: AccountType }[];
+  sources: { accountId?: AccountId }[];
+  destinations: { accountId?: AccountId }[];
 }
 
 export interface Template {
@@ -205,8 +205,8 @@ export interface StoreState {
 }
 
 export interface TransactionTemplateEntry {
-  sources: { accountType?: AccountType }[];
-  destinations: { accountType?: AccountType }[];
+  sources: { accountId?: AccountId }[];
+  destinations: { accountId?: AccountId }[];
 }
 
 export interface TransactionTemplate {
@@ -215,78 +215,78 @@ export interface TransactionTemplate {
   entries: TransactionTemplateEntry[];
 }
 
-// ── Default transaction templates (accountType = account UUID) ─────────────────
+// ── Default transaction templates (accountId = account UUID) ─────────────────
 export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   {
     id: "tpl-1",
     name: "Supplier delivered units to customer",
     entries: [{
-      sources: [{accountType: ACCT.SUPPLIER_DELIVERED}],
-      destinations: [{accountType: ACCT.DELIVERED_UNITS}],
+      sources: [{accountId: ACCT.SUPPLIER_DELIVERED}],
+      destinations: [{accountId: ACCT.DELIVERED_UNITS}],
     }],
   },
   {
     id: "tpl-2",
     name: "Unpaid units received by distributor from supplier",
     entries: [{
-      sources: [{accountType: ACCT.RELAYED_TO_DISTRIBUTOR}],
-      destinations: [{accountType: ACCT.HELD_UNITS}],
+      sources: [{accountId: ACCT.RELAYED_TO_DISTRIBUTOR}],
+      destinations: [{accountId: ACCT.HELD_UNITS}],
     }],
   },
   {
     id: "tpl-3",
     name: "Units delivered by distributor to customer after payment",
     entries: [{
-      sources: [{accountType: ACCT.HELD_UNITS}],
-      destinations: [{accountType: ACCT.DELIVERED_UNITS}],
+      sources: [{accountId: ACCT.HELD_UNITS}],
+      destinations: [{accountId: ACCT.DELIVERED_UNITS}],
     }],
   },
   {
     id: "tpl-4",
     name: "Customer returned usable units to distributor",
     entries: [{
-      sources: [{accountType: ACCT.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCT.USABLE_RETURNED_D}],
+      sources: [{accountId: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountId: ACCT.USABLE_RETURNED_D}],
     }],
   },
   {
     id: "tpl-5",
     name: "Customer returned defective units to distributor",
     entries: [{
-      sources: [{accountType: ACCT.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_D}],
+      sources: [{accountId: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_D}],
     }],
   },
   {
     id: "tpl-6",
     name: "Customer returned usable units to supplier",
     entries: [{
-      sources: [{accountType: ACCT.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCT.USABLE_RETURNED_S}],
+      sources: [{accountId: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountId: ACCT.USABLE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-7",
     name: "Customer returned defective units to supplier",
     entries: [{
-      sources: [{accountType: ACCT.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_S}],
+      sources: [{accountId: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-8",
     name: "Distributor returned usable units to supplier",
     entries: [{
-      sources: [{accountType: ACCT.USABLE_RETURNED_D}],
-      destinations: [{accountType: ACCT.USABLE_RETURNED_S}],
+      sources: [{accountId: ACCT.USABLE_RETURNED_D}],
+      destinations: [{accountId: ACCT.USABLE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-9",
     name: "Distributor returned defective units to supplier",
     entries: [{
-      sources: [{accountType: ACCT.DEFECTIVE_RETURNED_D}],
-      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_S}],
+      sources: [{accountId: ACCT.DEFECTIVE_RETURNED_D}],
+      destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_S}],
     }],
   },
   {
@@ -294,12 +294,12 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
     name: "General Correction",
     entries: [
       {
-        sources: [{accountType: undefined}],
-        destinations: [{accountType: ACCT.CORRECTIONS}],
+        sources: [{accountId: undefined}],
+        destinations: [{accountId: ACCT.CORRECTIONS}],
       },
       {
-        sources: [{accountType: ACCT.CORRECTIONS}],
-        destinations: [{accountType: undefined}],
+        sources: [{accountId: ACCT.CORRECTIONS}],
+        destinations: [{accountId: undefined}],
       },
     ],
   },
@@ -531,16 +531,16 @@ export async function deleteAccount(id: string) {
 }
 
 // ── Balance helper ────────────────────────────────────────────────────────────
-const isMatchingLeg = (leg: Leg, accountType: AccountType, customerId: string | null) =>
-  leg.accountType === accountType && (customerId == null || leg.customerId === customerId);
+const isMatchingLeg = (leg: Leg, accountId: AccountId, customerId: string | null) =>
+  leg.accountId === accountId && (customerId == null || leg.customerId === customerId);
 
-const sumMatchingLegs = (legs: Leg[] | undefined, accountType: AccountType, customerId: string | null) =>
+const sumMatchingLegs = (legs: Leg[] | undefined, accountId: AccountId, customerId: string | null) =>
   (legs ?? []).values()
-    .filter(leg => isMatchingLeg(leg, accountType, customerId))
+    .filter(leg => isMatchingLeg(leg, accountId, customerId))
     .reduce((sum, leg) => sum + leg.qty, 0);
 
 export function computeBalance(
-  accountType: AccountType,
+  accountId: AccountId,
   customerId: string | null,
   itemId: string | null,
   transactions: Transaction[]
@@ -549,8 +549,8 @@ export function computeBalance(
     .flatMap(tx => tx.entries)
     .filter(entry => itemId == null || entry.itemId === itemId)
     .reduce((balance, entry) => {
-      const totalOut = sumMatchingLegs(entry.sources, accountType, customerId);
-      const totalIn = sumMatchingLegs(entry.destinations, accountType, customerId);
+      const totalOut = sumMatchingLegs(entry.sources, accountId, customerId);
+      const totalIn = sumMatchingLegs(entry.destinations, accountId, customerId);
       return balance + totalIn - totalOut;
     }, 0);
 }
