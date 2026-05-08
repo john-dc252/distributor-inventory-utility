@@ -224,25 +224,29 @@ function TemplateForm(props: {
 }
 
 function EntryPreview(props: { entry: TemplateEntry }) {
-  const sources = () => normalizeTemplateLegs(props.entry.sources);
-  const destinations = () => normalizeTemplateLegs(props.entry.destinations);
+  const rows = () => {
+    const srcs = normalizeTemplateLegs(props.entry.sources);
+    const dsts = normalizeTemplateLegs(props.entry.destinations);
+    return Array.from({length: Math.max(srcs.length, dsts.length)}, (_, i) => ({
+      src: srcs[i],
+      dst: dsts[i],
+    }));
+  };
 
   return (
-    <div class="space-y-1">
-      <For each={sources()}>
-        {(leg) => (
-          <span
-            class="inline-block text-xs px-2 py-1 rounded-full mr-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-            From: {ACCOUNT_LABELS[leg.accountType]}
-          </span>
-        )}
-      </For>
-      <For each={destinations()}>
-        {(leg) => (
-          <span
-            class="inline-block text-xs px-2 py-1 rounded-full mr-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-            To: {ACCOUNT_LABELS[leg.accountType]}
-          </span>
+    <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+      <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
+      <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
+      <For each={rows()}>
+        {({src, dst}) => (
+          <>
+            {src
+              ? <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{ACCOUNT_LABELS[src.accountType]}</span>
+              : <span/>}
+            {dst
+              ? <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{ACCOUNT_LABELS[dst.accountType]}</span>
+              : <span/>}
+          </>
         )}
       </For>
     </div>

@@ -492,31 +492,35 @@ function TemplatePicker(props: {
               <p class="font-medium mb-1">{t.name}</p>
               <div class="space-y-1.5">
                 <For each={t.entries}>
-                  {(entry, i) => (
-                    <div>
-                      <Show when={t.entries.length > 1}>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Entry {i() + 1}</p>
-                      </Show>
-                      <div class="flex flex-wrap gap-1">
-                        <For each={normalizeTemplateLegs(entry.sources)}>
-                          {(leg) => (
-                            <span
-                              class="inline-block text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                                                            From: {(ACCOUNT_LABELS as Record<string, string>)[leg.accountType]}
-                                                        </span>
-                          )}
-                        </For>
-                        <For each={normalizeTemplateLegs(entry.destinations)}>
-                          {(leg) => (
-                            <span
-                              class="inline-block text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
-                                                            To: {(ACCOUNT_LABELS as Record<string, string>)[leg.accountType]}
-                                                        </span>
-                          )}
-                        </For>
+                  {(entry, i) => {
+                    const srcs = normalizeTemplateLegs(entry.sources);
+                    const dsts = normalizeTemplateLegs(entry.destinations);
+                    const rows = Array.from({length: Math.max(srcs.length, dsts.length)}, (_, j) => ({
+                      src: srcs[j],
+                      dst: dsts[j],
+                    }));
+                    return (
+                      <div>
+                        <Show when={t.entries.length > 1}>
+                          <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Entry {i() + 1}</p>
+                        </Show>
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                          <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
+                          <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
+                          {rows.map(({src, dst}) => (
+                            <>
+                              {src
+                                ? <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{(ACCOUNT_LABELS as Record<string, string>)[src.accountType]}</span>
+                                : <span/>}
+                              {dst
+                                ? <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{(ACCOUNT_LABELS as Record<string, string>)[dst.accountType]}</span>
+                                : <span/>}
+                            </>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  }}
                 </For>
               </div>
             </button>
