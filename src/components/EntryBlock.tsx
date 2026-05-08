@@ -38,7 +38,7 @@ export function EntryBlock(props: {
           <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{props.entry.itemId}</span>
         </Show>
       }>
-        <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+        <span class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
           <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{item()?.id ?? "-"}</span>
           {item()?.name ?? "-"}
         </span>
