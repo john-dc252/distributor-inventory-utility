@@ -1,11 +1,11 @@
-import {ACCOUNT_LABELS, Leg} from "../store";
+import {getAccountLabel, Leg} from "../store";
 
 export function LegPill(props: {
   leg: Leg & { customerName?: string | null };
   side: "source" | "destination";
   hideLabel?: boolean;
 }) {
-  const label = () => (ACCOUNT_LABELS as Record<string, string>)[props.leg.accountType] ?? props.leg.accountType;
+  const label = () => getAccountLabel(props.leg.accountType);
   return (
     <span class={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
       props.side === "source"

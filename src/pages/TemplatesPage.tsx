@@ -1,11 +1,11 @@
 import {createSignal, For, Show} from "solid-js";
 import {
-  ACCOUNT_LABELS,
   ACCOUNT_TYPES,
   AccountType,
   addTemplate,
   DEFAULT_TEMPLATES,
   deleteTemplate,
+  getAccountLabel,
   isLoaded,
   resetTemplatesToDefault,
   state,
@@ -242,11 +242,11 @@ function EntryPreview(props: { entry: TemplateEntry }) {
           <>
             {src
               ? <span
-                class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{ACCOUNT_LABELS[src.accountType]}</span>
+                class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountType)}</span>
               : <span/>}
             {dst
               ? <span
-                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{ACCOUNT_LABELS[dst.accountType]}</span>
+                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountType)}</span>
               : <span/>}
           </>
         )}

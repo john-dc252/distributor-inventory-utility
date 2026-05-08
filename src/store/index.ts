@@ -1,15 +1,18 @@
-import {createStore, unwrap} from "solid-js/store";
+import {createStore, produce, unwrap} from "solid-js/store";
 import {dbGet, dbSet} from "./db";
 import {createAsync} from "@solidjs/router";
 import {createEffect, createSignal} from "solid-js";
 
-// ── Account type constants ────────────────────────────────────────────────────
-const ROOT_ACCOUNT_TYPES = {
-  DISTRIBUTOR_INVENTORY: 'DISTRIBUTOR_INVENTORY',
-  SUPPLIER_INVENTORY: 'SUPPLIER_INVENTORY',
-  CUSTOMER_INVENTORY: 'CUSTOMER_INVENTORY',
-} as const;
+// ── Account schema ─────────────────────────────────────────────────────────────
+export interface Account {
+  code: string;
+  name: string;
+  subAccounts: Account[];
+  description?: string;
+  customerSpecific: boolean;
+}
 
+// ── Account type constants (codes – kept for backward compat with stored data) ─
 export const ACCOUNT_TYPES = {
   RELAYED_TO_DISTRIBUTOR: 'RELAYED_TO_DISTRIBUTOR',
   SUPPLIER_DELIVERED: 'SUPPLIER_DELIVERED',
@@ -24,63 +27,143 @@ export const ACCOUNT_TYPES = {
   OTHER: 'OTHER',
 } as const;
 
-export type RootAccountType = typeof ROOT_ACCOUNT_TYPES[keyof typeof ROOT_ACCOUNT_TYPES];
-export type AccountType = typeof ACCOUNT_TYPES[keyof typeof ACCOUNT_TYPES];
+export type AccountType = string;
 
-export class InvAccount {
-  type: AccountType | RootAccountType;
-  children: InvAccount[];
+// ── Default account hierarchy ──────────────────────────────────────────────────
+export const DEFAULT_ACCOUNTS: Account[] = [
+  {
+    code: "DISTRIBUTOR_INVENTORY",
+    name: "Distributor Inventory",
+    customerSpecific: false,
+    subAccounts: [
+      {
+        code: ACCOUNT_TYPES.HELD_UNITS,
+        name: "Held Units",
+        customerSpecific: true,
+        subAccounts: [],
+      },
+      {
+        code: ACCOUNT_TYPES.RETURNED_UNITS_D,
+        name: "Returned Units (Distributor)",
+        customerSpecific: false,
+        subAccounts: [
+          {
+            code: ACCOUNT_TYPES.USABLE_RETURNED_D,
+            name: "Usable Returned Units (Distributor)",
+            customerSpecific: false,
+            subAccounts: [],
+          },
+          {
+            code: ACCOUNT_TYPES.DEFECTIVE_RETURNED_D,
+            name: "Defective Returned Units (Distributor)",
+            customerSpecific: false,
+            subAccounts: [],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: "SUPPLIER_INVENTORY",
+    name: "Supplier Inventory",
+    customerSpecific: false,
+    subAccounts: [
+      {
+        code: ACCOUNT_TYPES.SUPPLIER_DELIVERED,
+        name: "Delivered by Supplier",
+        customerSpecific: false,
+        subAccounts: [],
+      },
+      {
+        code: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR,
+        name: "Relayed to Distributor",
+        customerSpecific: false,
+        subAccounts: [],
+      },
+      {
+        code: ACCOUNT_TYPES.RETURNED_UNITS_S,
+        name: "Returned Units (Supplier)",
+        customerSpecific: false,
+        subAccounts: [
+          {
+            code: ACCOUNT_TYPES.USABLE_RETURNED_S,
+            name: "Usable Returned Units (Supplier)",
+            customerSpecific: false,
+            subAccounts: [],
+          },
+          {
+            code: ACCOUNT_TYPES.DEFECTIVE_RETURNED_S,
+            name: "Defective Returned Units (Supplier)",
+            customerSpecific: false,
+            subAccounts: [],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    code: "CUSTOMER_INVENTORY",
+    name: "Customer Inventory",
+    customerSpecific: false,
+    subAccounts: [
+      {
+        code: ACCOUNT_TYPES.DELIVERED_UNITS,
+        name: "Delivered Units",
+        customerSpecific: true,
+        subAccounts: [],
+      },
+    ],
+  },
+];
 
-  constructor(type: AccountType | RootAccountType, children: InvAccount[] = []) {
-    this.type = type;
-    this.children = children;
-    Object.freeze(this);
-  }
-}
-
-export const DISTRIBUTOR_INVENTORY_ACCOUNT = new InvAccount(
-  ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY, [
-    new InvAccount(ACCOUNT_TYPES.HELD_UNITS),
-    new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_D, [
-      new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_D),
-      new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_D),
-    ]),
-  ]
-);
-
-export const SUPPLIER_INVENTORY_ACCOUNT = new InvAccount(
-  ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY, [
-    new InvAccount(ACCOUNT_TYPES.SUPPLIER_DELIVERED),
-    new InvAccount(ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR),
-    new InvAccount(ACCOUNT_TYPES.RETURNED_UNITS_S, [
-      new InvAccount(ACCOUNT_TYPES.USABLE_RETURNED_S),
-      new InvAccount(ACCOUNT_TYPES.DEFECTIVE_RETURNED_S),
-    ]),
-  ]
-);
-const SUPPLIER_RETURNED_ACCOUNTS = new Set<AccountType>([ACCOUNT_TYPES.USABLE_RETURNED_S, ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]);
-export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
-  getDescendants(SUPPLIER_INVENTORY_ACCOUNT)
-    .filter(acct => !SUPPLIER_RETURNED_ACCOUNTS.has(acct))
-));
-
-export const CUSTOMER_INVENTORY_ACCOUNT = new InvAccount(
-  ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY, [
-    new InvAccount(ACCOUNT_TYPES.DELIVERED_UNITS),
-  ]
-);
-
-function* getDescendants(account: InvAccount) {
-  const acctStack = account.children.slice(0);
-  while (acctStack.length > 0) {
-    const acct = acctStack.pop();
-    if (acct) {
-      yield acct.type as AccountType;
-      acctStack.push(...acct.children);
+// ── Predefined account codes (can be edited but not deleted) ───────────────────
+function collectCodes(accounts: Account[]): string[] {
+  const result: string[] = [];
+  function walk(accs: Account[]) {
+    for (const acc of accs) {
+      result.push(acc.code);
+      walk(acc.subAccounts);
     }
   }
+  walk(accounts);
+  return result;
 }
 
+export const PREDEFINED_ACCOUNT_CODES = new Set<string>(collectCodes(DEFAULT_ACCOUNTS));
+
+// ── Supplier negative-sign accounts (static, derived from DEFAULT_ACCOUNTS) ────
+function getDescendantCodes(account: Account): string[] {
+  const result: string[] = [];
+  function walk(acc: Account) {
+    for (const child of acc.subAccounts) {
+      result.push(child.code);
+      walk(child);
+    }
+  }
+  walk(account);
+  return result;
+}
+
+const _SUPPLIER_RETURNED = new Set<string>([ACCOUNT_TYPES.USABLE_RETURNED_S, ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]);
+const _supplierDefault = DEFAULT_ACCOUNTS.find(a => a.code === "SUPPLIER_INVENTORY")!;
+export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
+  getDescendantCodes(_supplierDefault).filter(c => !_SUPPLIER_RETURNED.has(c))
+));
+
+// ── Pure account tree helpers (do not need state) ─────────────────────────────
+export function getLeafAccounts(accounts: Account[]): Account[] {
+  const result: Account[] = [];
+  function walk(accs: Account[]) {
+    for (const acc of accs) {
+      if (acc.subAccounts.length === 0) result.push(acc);
+      else walk(acc.subAccounts);
+    }
+  }
+  walk(accounts);
+  return result;
+}
+
+// ── Entity interfaces ──────────────────────────────────────────────────────────
 export interface Item {
   id: string;
   name: string;
@@ -135,33 +218,10 @@ export interface StoreState {
   customers: Customer[];
   templates: Template[];
   transactions: Transaction[];
+  accounts: Account[];
 }
 
-export const ACCOUNT_LABELS = {
-  [ROOT_ACCOUNT_TYPES.DISTRIBUTOR_INVENTORY]: 'Distributor Inventory',
-  [ROOT_ACCOUNT_TYPES.SUPPLIER_INVENTORY]: 'Supplier Inventory',
-  [ROOT_ACCOUNT_TYPES.CUSTOMER_INVENTORY]: 'Customer Inventory',
-  [ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR]: 'Relayed to Distributor',
-  [ACCOUNT_TYPES.SUPPLIER_DELIVERED]: 'Delivered by Supplier',
-  [ACCOUNT_TYPES.USABLE_RETURNED_S]: 'Usable Returned Units (SUPPLIER)',
-  [ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]: 'Defective Returned Units (SUPPLIER)',
-  [ACCOUNT_TYPES.HELD_UNITS]: 'Held Units',
-  [ACCOUNT_TYPES.RETURNED_UNITS_D]: 'Returned Units',
-  [ACCOUNT_TYPES.RETURNED_UNITS_S]: 'Returned Units',
-  [ACCOUNT_TYPES.USABLE_RETURNED_D]: 'Usable Returned Units (DISTRIBUTOR)',
-  [ACCOUNT_TYPES.DEFECTIVE_RETURNED_D]: 'Defective Returned Units (DISTRIBUTOR)',
-  [ACCOUNT_TYPES.DELIVERED_UNITS]: 'Delivered Units',
-  [ACCOUNT_TYPES.OTHER]: 'Other',
-};
-
-// Accounts that require a customer selection
-export const PER_CUSTOMER_ACCOUNTS = new Set<AccountType>([
-  ACCOUNT_TYPES.HELD_UNITS,
-  ACCOUNT_TYPES.DELIVERED_UNITS,
-]);
-
 // ── Default transaction templates ─────────────────────────────────────────────
-// Template entries define account types only; customers/items/qtys are filled at transaction time.
 export const DEFAULT_TEMPLATES = [
   {
     id: "tpl-1",
@@ -268,6 +328,7 @@ const [state, setState] = createStore<StoreState>({
   customers: [],
   templates: [],
   transactions: [],
+  accounts: DEFAULT_ACCOUNTS,
 });
 
 export const [isLoaded, setIsLoaded] = createSignal(false);
@@ -276,6 +337,28 @@ function suspend(t: number) {
   return new Promise<void>(resolve => setTimeout(() => resolve(), t));
 }
 
+// ── Reactive account helpers (read state.accounts) ────────────────────────────
+function findAccount(accounts: Account[], code: string): Account | undefined {
+  for (const acc of accounts) {
+    if (acc.code === code) return acc;
+    const found = findAccount(acc.subAccounts, code);
+    if (found) return found;
+  }
+}
+
+export function getAccountLabel(code: string): string {
+  return findAccount(state.accounts, code)?.name ?? code;
+}
+
+export function isPerCustomer(code: string): boolean {
+  return findAccount(state.accounts, code)?.customerSpecific ?? false;
+}
+
+export function accountCodeExists(code: string): boolean {
+  return !!findAccount(state.accounts, code);
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
 export function loadStoredData() {
   const getStoredData = createAsync<StoreState>(async () => {
     const data = {
@@ -283,6 +366,7 @@ export function loadStoredData() {
       customers: await load<Customer[]>("customers", []),
       templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
       transactions: await load<Transaction[]>("transactions", []),
+      accounts: await load<Account[]>("accounts", DEFAULT_ACCOUNTS),
     };
 
     await suspend(1500);
@@ -375,18 +459,73 @@ export async function deleteTransaction(id: string) {
   await persist(["transactions"]);
 }
 
-// ── Balance helper (used by AccountsPage) ─────────────────────────────────────
-// Define a helper to check if a leg matches our target criteria
+// ── Account actions ───────────────────────────────────────────────────────────
+export async function addAccount(parentCode: string | null, account: Omit<Account, "subAccounts">) {
+  const newAccount: Account = {...account, subAccounts: []};
+  setState("accounts", produce((accs) => {
+    if (parentCode === null) {
+      accs.push(newAccount);
+      return;
+    }
+    function addToParent(list: Account[]): boolean {
+      for (const acc of list) {
+        if (acc.code === parentCode) {
+          acc.subAccounts.push(newAccount);
+          return true;
+        }
+        if (addToParent(acc.subAccounts)) return true;
+      }
+      return false;
+    }
+    addToParent(accs);
+  }));
+  await persist(["accounts"]);
+}
+
+export async function updateAccount(code: string, fields: Partial<Omit<Account, "code" | "subAccounts">>) {
+  setState("accounts", produce((accs) => {
+    function update(list: Account[]): boolean {
+      for (const acc of list) {
+        if (acc.code === code) {
+          Object.assign(acc, fields);
+          return true;
+        }
+        if (update(acc.subAccounts)) return true;
+      }
+      return false;
+    }
+    update(accs);
+  }));
+  await persist(["accounts"]);
+}
+
+export async function deleteAccount(code: string) {
+  setState("accounts", produce((accs) => {
+    function remove(list: Account[]): boolean {
+      const idx = list.findIndex(a => a.code === code);
+      if (idx !== -1) {
+        list.splice(idx, 1);
+        return true;
+      }
+      for (const acc of list) {
+        if (remove(acc.subAccounts)) return true;
+      }
+      return false;
+    }
+    remove(accs);
+  }));
+  await persist(["accounts"]);
+}
+
+// ── Balance helper ────────────────────────────────────────────────────────────
 const isMatchingLeg = (leg: Leg, accountType: AccountType, customerId: string | null) =>
   leg.accountType === accountType && (customerId == null || leg.customerId === customerId);
 
-// Define a helper to sum the quantities of matching legs
 const sumMatchingLegs = (legs: Leg[] | undefined, accountType: AccountType, customerId: string | null) =>
   (legs ?? []).values()
     .filter(leg => isMatchingLeg(leg, accountType, customerId))
     .reduce((sum, leg) => sum + leg.qty, 0);
 
-// Returns net qty for a given account/customer/item across all transactions.
 export function computeBalance(
   accountType: AccountType,
   customerId: string | null,

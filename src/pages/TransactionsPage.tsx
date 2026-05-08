@@ -3,15 +3,15 @@ import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {
-  ACCOUNT_LABELS,
   ACCOUNT_TYPES,
   AccountType,
   addTransaction,
   Customer,
   deleteTransaction,
   Entry,
+  getAccountLabel,
   isLoaded,
-  PER_CUSTOMER_ACCOUNTS,
+  isPerCustomer,
   state,
   Template,
 } from "../store";
@@ -76,7 +76,7 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
 function applyInitialCustomer(legs: FormLeg[], customerId: string): FormLeg[] {
   if (!customerId) return legs;
   return legs.map(leg =>
-    PER_CUSTOMER_ACCOUNTS.has(leg.accountType) ? {...leg, customerId} : leg
+    isPerCustomer(leg.accountType) ? {...leg, customerId} : leg
   );
 }
 
@@ -100,7 +100,7 @@ function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To", sk
     const qty = Number(leg.qty);
     if (!leg.qty || isNaN(qty) || qty <= 0)
       return `Entry ${entryNum}, ${side} ${i + 1}: quantity must be a positive number.`;
-    if (!skipCustomerValidation && PER_CUSTOMER_ACCOUNTS.has(leg.accountType) && !leg.customerId)
+    if (!skipCustomerValidation && isPerCustomer(leg.accountType) && !leg.customerId)
       return `Entry ${entryNum}, ${side} ${i + 1}: select a customer.`;
   }
   return null;
@@ -125,7 +125,7 @@ function validateEntries(entries: FormEntry[], skipCustomerValidation = false): 
 // ── Template classification ───────────────────────────────────────────────────
 function isCustomerTemplate(t: Template): boolean {
   return t.entries.some(e =>
-    [...e.sources, ...e.destinations].some(leg => PER_CUSTOMER_ACCOUNTS.has(leg.accountType))
+    [...e.sources, ...e.destinations].some(leg => isPerCustomer(leg.accountType))
   );
 }
 
@@ -138,11 +138,11 @@ function LegRow(props: {
   onRemove: () => void;
   canRemove: boolean;
 }) {
-  const needsCustomer = () => PER_CUSTOMER_ACCOUNTS.has(props.leg.accountType);
+  const needsCustomer = () => isPerCustomer(props.leg.accountType);
 
   function setField(field: keyof FormLeg, value: string) {
     const updated = {...props.leg, [field]: value};
-    if (field === "accountType" && !PER_CUSTOMER_ACCOUNTS.has(value as AccountType))
+    if (field === "accountType" && !isPerCustomer(value as AccountType))
       updated.customerId = "";
     props.onUpdate(updated);
   }
@@ -331,12 +331,12 @@ function TransactionForm(props: {
         itemId: en.itemId,
         sources: en.sources.map(l => ({
           accountType: l.accountType,
-          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? txCustomer : null,
+          customerId: isPerCustomer(l.accountType) ? txCustomer : null,
           qty: Number(l.qty),
         })),
         destinations: en.destinations.map(l => ({
           accountType: l.accountType,
-          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? txCustomer : null,
+          customerId: isPerCustomer(l.accountType) ? txCustomer : null,
           qty: Number(l.qty),
         })),
       })),
@@ -518,11 +518,11 @@ function TemplatePicker(props: {
                             <>
                               {src
                                 ? <span
-                                  class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{(ACCOUNT_LABELS as Record<string, string>)[src.accountType]}</span>
+                                  class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{getAccountLabel(src.accountType)}</span>
                                 : <span/>}
                               {dst
                                 ? <span
-                                  class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{(ACCOUNT_LABELS as Record<string, string>)[dst.accountType]}</span>
+                                  class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{getAccountLabel(dst.accountType)}</span>
                                 : <span/>}
                             </>
                           ))}
@@ -686,11 +686,13 @@ export default function TransactionsPage() {
   const [search, setSearch] = createSignal("");
   const [filterCustomer, setFilterCustomer] = createSignal("");
   const [filterItem, setFilterItem] = createSignal("");
+  const [filterAccount, setFilterAccount] = createSignal("");
 
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
     const cid = filterCustomer();
     const iid = filterItem();
+    const aid = filterAccount();
     return state.transactions.filter(tx => {
       const matchSearch = !q ||
         tx.templateName?.toLowerCase().includes(q) ||
@@ -699,7 +701,9 @@ export default function TransactionsPage() {
       const matchCustomer = !cid || tx.entries.some(e =>
         [...(e.sources ?? []), ...(e.destinations ?? [])].some(l => l.customerId === cid));
       const matchItem = !iid || tx.entries.some(e => e.itemId === iid);
-      return matchSearch && matchCustomer && matchItem;
+      const matchAccount = !aid || tx.entries.some(e =>
+        [...(e.sources ?? []), ...(e.destinations ?? [])].some(l => l.accountType === aid));
+      return matchSearch && matchCustomer && matchItem && matchAccount;
     });
   });
 
@@ -740,6 +744,9 @@ export default function TransactionsPage() {
         </div>
         <div class="min-w-44">
           <CustomerCombobox value={filterCustomer()} onSelect={setFilterCustomer} allowAll/>
+        </div>
+        <div class="min-w-44">
+          <AccountCombobox value={filterAccount()} onSelect={setFilterAccount} allowAll/>
         </div>
       </div>
 

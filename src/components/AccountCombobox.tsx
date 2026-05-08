@@ -1,39 +1,57 @@
-import {createMemo} from "solid-js";
-import {ACCOUNT_LABELS, ACCOUNT_TYPES, AccountType, PER_CUSTOMER_ACCOUNTS} from "../store";
+import {createMemo, Show} from "solid-js";
+import {getLeafAccounts, state} from "../store";
 import {Combobox} from "./Combobox";
 
-type AccountOption = { id: AccountType; label: string };
+type AccountOption = { id: string; name: string; customerSpecific: boolean };
 
-const allLeafOptions: AccountOption[] = Object.values(ACCOUNT_TYPES).map(type => ({
-  id: type,
-  label: (ACCOUNT_LABELS as Record<string, string>)[type] ?? type,
-}));
+const allAccountsOption: AccountOption = {id: "", name: "All Accounts", customerSpecific: false};
 
 export function AccountCombobox(props: {
-  value: AccountType;
-  onSelect: (type: AccountType) => void;
+  value: string;
+  onSelect: (code: string) => void;
   excludePerCustomer?: boolean;
+  allowAll?: boolean;
 }) {
-  const options = createMemo(() =>
-    props.excludePerCustomer
-      ? allLeafOptions.filter(o => !PER_CUSTOMER_ACCOUNTS.has(o.id))
-      : allLeafOptions
-  );
+  const options = createMemo<AccountOption[]>(() => {
+    const leaves = getLeafAccounts(state.accounts);
+    const filtered = props.excludePerCustomer
+      ? leaves.filter(a => !a.customerSpecific)
+      : leaves;
+    const mapped = filtered.map(a => ({id: a.code, name: a.name, customerSpecific: a.customerSpecific}));
+    return props.allowAll ? [allAccountsOption, ...mapped] : mapped;
+  });
 
   return (
     <Combobox
       value={props.value}
-      onSelect={(id) => props.onSelect(id as AccountType)}
+      onSelect={props.onSelect}
       options={options()}
-      filterFn={(opt, q) => opt.label.toLowerCase().includes(q)}
+      filterFn={(opt, q) =>
+        opt.id.toLowerCase().includes(q) ||
+        opt.name.toLowerCase().includes(q)
+      }
       placeholder="— select account —"
       searchPlaceholder="Search accounts..."
       emptyText="No accounts found"
       renderTrigger={(opt) => (
-        <span class="text-sm truncate">{opt.label}</span>
+        <span class="flex items-center gap-1.5 min-w-0">
+          <Show when={opt.id}>
+            <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
+              {opt.id}
+            </span>
+          </Show>
+          <span class="text-sm truncate">{opt.name}</span>
+        </span>
       )}
       renderOption={(opt) => (
-        <span class="truncate">{opt.label}</span>
+        <>
+          <Show when={opt.id}>
+            <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
+              {opt.id}
+            </span>
+          </Show>
+          <span class="text-sm truncate">{opt.name}</span>
+        </>
       )}
     />
   );
