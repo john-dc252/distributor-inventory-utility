@@ -1,6 +1,6 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
 import {
-  Account,
+  IAccount,
   accountCodeExists,
   addAccount,
   computeBalance,
@@ -18,7 +18,7 @@ import {AccountCardSkeleton} from "../components/Skeleton";
 import {CustomerAvatar} from "../components/CustomerAvatar";
 import {ItemCombobox} from "../components/ItemCombobox";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
-import {inputCls, secondaryBtn} from "../components/styles";
+import {inputCls} from "../components/styles";
 
 type Tab = "summary" | "manage";
 
@@ -69,7 +69,7 @@ function ItemRows(props: {
 }
 
 function LeafBlock(props: {
-  account: Account;
+  account: IAccount;
   items: Item[];
   customers: Customer[];
   fixedCustomerId: string | null;
@@ -171,7 +171,7 @@ function LeafBlock(props: {
 }
 
 function GroupBlock(props: {
-  account: Account;
+  account: IAccount;
   items: Item[];
   customers: Customer[];
   fixedCustomerId: string | null;
@@ -200,7 +200,7 @@ function GroupBlock(props: {
 }
 
 function AccountBlock(props: {
-  account: Account;
+  account: IAccount;
   items: Item[];
   customers: Customer[];
   fixedCustomerId: string | null;
@@ -232,7 +232,7 @@ function AccountBlock(props: {
 }
 
 function RootCard(props: {
-  account: Account;
+  account: IAccount;
   items: Item[];
   customers: Customer[];
   showZero: boolean;
@@ -260,7 +260,7 @@ function RootCard(props: {
 
 function CustomerCard(props: {
   customer: Customer;
-  customerRootSubAccounts: Account[];
+  customerRootSubAccounts: IAccount[];
   items: Item[];
   showZero: boolean;
 }) {
@@ -295,7 +295,7 @@ function CustomerCard(props: {
 
 // ── Manage Accounts tab components ────────────────────────────────────────────
 
-function AccountEditForm(props: { account: Account; onDone: () => void }) {
+function AccountEditForm(props: { account: IAccount; onDone: () => void }) {
   const [code, setCode] = createSignal(props.account.code);
   const [name, setName] = createSignal(props.account.name);
   const [description, setDescription] = createSignal(props.account.description ?? "");
@@ -407,7 +407,7 @@ function AccountAddForm(props: { parentId: string | null; onDone: () => void }) 
   );
 }
 
-function AccountNode(props: { account: Account; depth: number }) {
+function AccountNode(props: { account: IAccount; depth: number }) {
   const [editing, setEditing] = createSignal(false);
   const [addingChild, setAddingChild] = createSignal(false);
   const [confirmDelete, setConfirmDelete] = createSignal(false);
@@ -488,22 +488,11 @@ function AccountNode(props: { account: Account; depth: number }) {
 }
 
 function ManageAccountsTab() {
-  const [addingRoot, setAddingRoot] = createSignal(false);
-
   return (
     <div class="space-y-2">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          Pre-defined accounts can be edited but not deleted.
-        </p>
-        <button type="button" onClick={() => setAddingRoot(v => !v)}
-                class={`${secondaryBtn} inline-flex items-center gap-1.5 text-sm`}>
-          <PlusIcon class="w-3.5 h-3.5"/>Add Account
-        </button>
-      </div>
-      <Show when={addingRoot()}>
-        <AccountAddForm parentId={null} onDone={() => setAddingRoot(false)}/>
-      </Show>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+        Pre-defined accounts can be edited but not deleted.
+      </p>
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow px-2 py-1">
         <For each={state.accounts}>
           {(account) => <AccountNode account={account} depth={0}/>}

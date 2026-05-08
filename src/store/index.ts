@@ -4,13 +4,37 @@ import {createAsync} from "@solidjs/router";
 import {createEffect, createSignal} from "solid-js";
 
 // ── Account schema ─────────────────────────────────────────────────────────────
-export interface Account {
-  id: string;          // stable UUID – used as reference in transaction legs
+export interface IAccount {
+  readonly id: string; // stable UUID – used as reference in transaction legs
   code: string;        // display code – editable, no referential meaning
   name: string;
-  subAccounts: Account[];
+  subAccounts: IAccount[];
   description?: string;
   customerSpecific: boolean;
+}
+
+export class Account implements IAccount {
+  readonly id: string;
+  code: string = "";
+  name: string = "";
+  subAccounts: IAccount[] = [];
+  description?: string;
+  customerSpecific: boolean = false;
+
+  constructor(arg?: string | IAccount) {
+    if (typeof arg === "string") {
+      this.id = arg;
+    } else if (arg != null) {
+      this.id = arg.id;
+      this.code = arg.code;
+      this.name = arg.name;
+      this.subAccounts = arg.subAccounts;
+      this.description = arg.description;
+      this.customerSpecific = arg.customerSpecific;
+    } else {
+      this.id = newId();
+    }
+  }
 }
 
 export type AccountType = string; // stores account UUID
@@ -42,7 +66,7 @@ export const PREDEFINED_ACCOUNT_ID_SET = new Set<string>(Object.values(PREDEFINE
 // ── Default account hierarchy ──────────────────────────────────────────────────
 const ACCT = PREDEFINED_ACCOUNT_IDS; // shorthand
 
-export const DEFAULT_ACCOUNTS: Account[] = [
+export const DEFAULT_ACCOUNTS: IAccount[] = [
   {
     id: ACCT.DISTRIBUTOR_INVENTORY, code: "10000", name: "Distributor Inventory",
     customerSpecific: false,
@@ -112,10 +136,10 @@ export const DEFAULT_ACCOUNTS: Account[] = [
 ];
 
 // ── Supplier negative-sign sub-accounts (static) ───────────────────────────────
-function getDescendantIds(account: Account): string[] {
+function getDescendantIds(account: IAccount): string[] {
   const result: string[] = [];
 
-  function walk(acc: Account) {
+  function walk(acc: IAccount) {
     for (const child of acc.subAccounts) {
       result.push(child.id);
       walk(child);
@@ -133,10 +157,10 @@ export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
 ));
 
 // ── Pure account tree helpers ──────────────────────────────────────────────────
-export function getLeafAccounts(accounts: Account[]): Account[] {
-  const result: Account[] = [];
+export function getLeafAccounts(accounts: IAccount[]): IAccount[] {
+  const result: IAccount[] = [];
 
-  function walk(accs: Account[]) {
+  function walk(accs: IAccount[]) {
     for (const acc of accs) {
       if (acc.subAccounts.length === 0) result.push(acc);
       else walk(acc.subAccounts);
@@ -202,7 +226,7 @@ export interface StoreState {
   customers: Customer[];
   templates: Template[];
   transactions: Transaction[];
-  accounts: Account[];
+  accounts: IAccount[];
 }
 
 // ── Default transaction templates (accountType = account UUID) ─────────────────
@@ -322,7 +346,7 @@ function suspend(t: number) {
 }
 
 // ── Reactive account helpers ───────────────────────────────────────────────────
-function findAccountById(accounts: Account[], id: string): Account | undefined {
+function findAccountById(accounts: IAccount[], id: string): IAccount | undefined {
   for (const acc of accounts) {
     if (acc.id === id) return acc;
     const found = findAccountById(acc.subAccounts, id);
@@ -330,7 +354,7 @@ function findAccountById(accounts: Account[], id: string): Account | undefined {
   }
 }
 
-function findAccountByCode(accounts: Account[], code: string): Account | undefined {
+function findAccountByCode(accounts: IAccount[], code: string): IAccount | undefined {
   for (const acc of accounts) {
     if (acc.code === code) return acc;
     const found = findAccountByCode(acc.subAccounts, code);
@@ -360,7 +384,7 @@ export function loadStoredData() {
       customers: await load<Customer[]>("customers", []),
       templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
       transactions: await load<Transaction[]>("transactions", []),
-      accounts: await load<Account[]>("accounts", DEFAULT_ACCOUNTS),
+      accounts: await load<IAccount[]>("accounts", DEFAULT_ACCOUNTS),
     };
 
     await suspend(1500);
@@ -454,15 +478,15 @@ export async function deleteTransaction(id: string) {
 }
 
 // ── Account actions ───────────────────────────────────────────────────────────
-export async function addAccount(parentId: string | null, account: Omit<Account, "id" | "subAccounts">) {
-  const newAccount: Account = {...account, id: newId(), subAccounts: []};
+export async function addAccount(parentId: string | null, account: Omit<IAccount, "id" | "subAccounts">) {
+  const newAccount = Object.assign(new Account(), {...account, subAccounts: []});
   setState("accounts", produce((accs) => {
     if (parentId === null) {
       accs.push(newAccount);
       return;
     }
 
-    function addToParent(list: Account[]): boolean {
+    function addToParent(list: IAccount[]): boolean {
       for (const acc of list) {
         if (acc.id === parentId) {
           acc.subAccounts.push(newAccount);
@@ -478,9 +502,9 @@ export async function addAccount(parentId: string | null, account: Omit<Account,
   await persist(["accounts"]);
 }
 
-export async function updateAccount(id: string, fields: Partial<Omit<Account, "id" | "subAccounts">>) {
+export async function updateAccount(id: string, fields: Partial<Omit<IAccount, "id" | "subAccounts">>) {
   setState("accounts", produce((accs) => {
-    function update(list: Account[]): boolean {
+    function update(list: IAccount[]): boolean {
       for (const acc of list) {
         if (acc.id === id) {
           Object.assign(acc, fields);
@@ -498,7 +522,7 @@ export async function updateAccount(id: string, fields: Partial<Omit<Account, "i
 
 export async function deleteAccount(id: string) {
   setState("accounts", produce((accs) => {
-    function remove(list: Account[]): boolean {
+    function remove(list: IAccount[]): boolean {
       const idx = list.findIndex(a => a.id === id);
       if (idx !== -1) {
         list.splice(idx, 1);
