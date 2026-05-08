@@ -14,6 +14,7 @@ import {
   PREDEFINED_ACCOUNT_IDS,
   state,
   Template,
+  Transaction,
 } from "../store";
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
@@ -36,11 +37,23 @@ type TxModalState =
 const templateChoiceBtn = `w-full text-left ${inputCls} hover:bg-gray-50 dark:hover:bg-gray-600 transition`;
 
 // ── Form types ────────────────────────────────────────────────────────────────
-interface FormLeg {
+interface FormLegBase {
+  accountType?: AccountType;
+  customerId?: string;
+  qty: string | number;
+}
+
+interface InitializedFormLeg extends FormLegBase {
   accountType: AccountType;
   customerId: string;
   qty: string | number;
 }
+
+interface UnsetFormLeg extends FormLegBase {
+  accountType: undefined;
+}
+
+type FormLeg = InitializedFormLeg | UnsetFormLeg;
 
 interface FormEntry {
   itemId: string;
@@ -50,7 +63,7 @@ interface FormEntry {
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
-  return {accountType: PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR, customerId: "", qty: ""};
+  return {accountType: undefined, qty: ""};
 }
 
 function newEntry(): FormEntry {
@@ -97,6 +110,8 @@ function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ""):
 
 function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To", skipCustomerValidation = false): string | null {
   for (const [i, leg] of legs.entries()) {
+    if (!leg.accountType)
+      return `Entry ${entryNum}, ${side} ${i + 1}: select an account.`;
     const qty = Number(leg.qty);
     if (!leg.qty || isNaN(qty) || qty <= 0)
       return `Entry ${entryNum}, ${side} ${i + 1}: quantity must be a positive number.`;
@@ -322,7 +337,7 @@ function TransactionForm(props: {
 
   const txData = createMemo(() => {
     const txCustomer = txCustomerId();
-    return {
+    const data: Omit<Transaction, "id" | "createdAt"> = {
       templateId: templateId() || null,
       templateName: selectedTemplate()?.name ?? "Manual",
       date: date(),
@@ -330,17 +345,19 @@ function TransactionForm(props: {
       entries: entries.map(en => ({
         itemId: en.itemId,
         sources: en.sources.map(l => ({
-          accountType: l.accountType,
+          accountType: l.accountType!,
           customerId: isPerCustomer(l.accountType) ? txCustomer : null,
           qty: Number(l.qty),
         })),
         destinations: en.destinations.map(l => ({
-          accountType: l.accountType,
+          accountType: l.accountType!,
           customerId: isPerCustomer(l.accountType) ? txCustomer : null,
           qty: Number(l.qty),
         })),
       })),
     };
+
+    return data;
   });
 
   function loadTemplate(id: string) {
