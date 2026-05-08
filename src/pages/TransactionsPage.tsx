@@ -63,7 +63,7 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
     .map((leg: any) => {
       const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
       return {
-        accountType: accountType ?? PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR,
+        accountType: accountType,
         customerId: leg?.customerId ?? "",
         qty: leg?.qty ?? "",
       };

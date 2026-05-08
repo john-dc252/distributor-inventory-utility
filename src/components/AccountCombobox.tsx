@@ -4,10 +4,11 @@ import {Combobox} from "./Combobox";
 
 type AccountOption = { id: string; code: string; name: string; customerSpecific: boolean };
 
+const selectAccountOption: AccountOption = {id: "", code: "", name: "Select an account", customerSpecific: false};
 const allAccountsOption: AccountOption = {id: "", code: "", name: "All Accounts", customerSpecific: false};
 
 export function AccountCombobox(props: {
-  value: string;
+  value?: string;
   onSelect: (id: string) => void;
   excludePerCustomer?: boolean;
   allowAll?: boolean;
@@ -18,7 +19,7 @@ export function AccountCombobox(props: {
       ? leaves.filter(a => !a.customerSpecific)
       : leaves;
     const mapped = filtered.map(a => ({id: a.id, code: a.code, name: a.name, customerSpecific: a.customerSpecific}));
-    return props.allowAll ? [allAccountsOption, ...mapped] : mapped;
+    return props.allowAll ? [allAccountsOption, ...mapped] : [selectAccountOption, ...mapped];
   });
 
   return (

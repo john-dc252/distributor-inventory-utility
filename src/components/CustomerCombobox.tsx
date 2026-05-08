@@ -3,10 +3,11 @@ import {Combobox} from "./Combobox";
 import {CustomerAvatar} from "./CustomerAvatar";
 import {createMemo, Show} from "solid-js";
 
+const selectCustomerOption: Customer = {id: "", name: "Select a customer", createdAt: ""};
 const selectAllCustomer: Customer = {id: "", name: "All Customers", createdAt: ""};
 
 export function CustomerCombobox(props: { value: string; onSelect: (id: string) => void; allowAll?: boolean }) {
-  const options = createMemo(() => props.allowAll ? [selectAllCustomer, ...state.customers] : state.customers);
+  const options = createMemo(() => props.allowAll ? [selectAllCustomer, ...state.customers] : [selectCustomerOption, ...state.customers]);
   return (
     <Combobox
       value={props.value}

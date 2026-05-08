@@ -21,7 +21,7 @@ import {inputClsFull as inputCls, labelCls} from "../components/styles";
 import {AccountCombobox} from "../components/AccountCombobox";
 
 interface TemplateFormLeg {
-  accountType: AccountType;
+  accountType?: AccountType;
 }
 
 interface TemplateFormEntry {
@@ -30,7 +30,7 @@ interface TemplateFormEntry {
 }
 
 function newLeg(): TemplateFormLeg {
-  return {accountType: PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR};
+  return {accountType: undefined};
 }
 
 function newEntry(): TemplateFormEntry {
@@ -42,7 +42,7 @@ function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const normalized = legsArray.values()
     .map((leg) => {
       const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
-      return {accountType: accountType ?? PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR};
+      return {accountType: accountType};
     })
     .filter((leg) => leg.accountType)
     .toArray();

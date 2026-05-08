@@ -186,8 +186,8 @@ export interface Transaction {
 }
 
 export interface TemplateEntry {
-  sources: { accountType: AccountType }[];
-  destinations: { accountType: AccountType }[];
+  sources: { accountType?: AccountType }[];
+  destinations: { accountType?: AccountType }[];
 }
 
 export interface Template {
@@ -204,8 +204,19 @@ export interface StoreState {
   accounts: Account[];
 }
 
+export interface TransactionTemplateEntry {
+  sources: { accountType?: AccountType }[];
+  destinations: { accountType?: AccountType }[];
+}
+
+export interface TransactionTemplate {
+  id: string;
+  name: string;
+  entries: TransactionTemplateEntry[];
+}
+
 // ── Default transaction templates (accountType = account UUID) ─────────────────
-export const DEFAULT_TEMPLATES = [
+export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   {
     id: "tpl-1",
     name: "Supplier delivered units to customer",
@@ -278,6 +289,20 @@ export const DEFAULT_TEMPLATES = [
       destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_S}],
     }],
   },
+  {
+    id: "tpl-10",
+    name: "General Correction",
+    entries: [
+      {
+        sources: [{accountType: undefined}],
+        destinations: [{accountType: ACCT.CORRECTIONS}],
+      },
+      {
+        sources: [{accountType: ACCT.CORRECTIONS}],
+        destinations: [{accountType: undefined}],
+      },
+    ],
+  },
 ];
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
@@ -345,11 +370,17 @@ function* traverseAccountTreeUnordered(account: Account) {
   }
 }
 
-export function getAccountLabel(id: string): string {
+export function getAccountLabel(id?: string): string {
+  if (!id) {
+    return '--';
+  }
   return findAccountById(state.accounts, id)?.name ?? id;
 }
 
-export function isPerCustomer(id: string): boolean {
+export function isPerCustomer(id?: string): boolean {
+  if (!id) {
+    return false;
+  }
   return findAccountById(state.accounts, id)?.customerSpecific ?? false;
 }
 

@@ -2,7 +2,7 @@ import {createMemo, createSignal, For, JSX, Show} from "solid-js";
 import {sel} from "./styles";
 
 export function Combobox<T extends { id: string }>(props: {
-  value: string;
+  value?: string;
   onSelect: (id: string) => void;
   options: T[];
   filterFn: (item: T, query: string) => boolean;

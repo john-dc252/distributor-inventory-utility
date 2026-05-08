@@ -2,13 +2,15 @@ import {Item, state} from "../store";
 import {Combobox} from "./Combobox";
 import {createMemo, Show} from "solid-js";
 
+const selectItemOption: Item = {id: "", name: "Select an item", createdAt: ""};
 const selectAllItem: Item = {id: "", name: "All Items", createdAt: ""};
 
 export function ItemCombobox(
   props: { value: string; onSelect: (id: string) => void; allowAll?: boolean },
 ) {
-  const optionsWithSelectAll = createMemo(() => [selectAllItem].concat(state.items));
-  const options = createMemo(() => props.allowAll ? optionsWithSelectAll() : state.items);
+  const options = createMemo(() =>
+    props.allowAll ? [selectAllItem, ...state.items] : [selectItemOption, ...state.items]
+  );
   return (
     <Combobox
       value={props.value}
