@@ -1,15 +1,15 @@
 import {createMemo, createSignal, For, Show} from "solid-js";
 import {
-  IAccount,
   accountCodeExists,
   addAccount,
   computeBalance,
   Customer,
   deleteAccount,
+  IAccount,
   isLoaded,
   Item,
-  PREDEFINED_ACCOUNT_IDS,
   PREDEFINED_ACCOUNT_ID_SET,
+  PREDEFINED_ACCOUNT_IDS,
   state,
   SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS,
   updateAccount,
@@ -51,14 +51,17 @@ function ItemRows(props: {
     }>
       <For each={rows()}>
         {({item, bal}) => (
-          <div class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+          <div
+            class="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
             <span class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 min-w-0">
-              <span class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-1 rounded shrink-0">
+              <span
+                class="font-mono text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-1 rounded shrink-0">
                 {item.id}
               </span>
               <span class="truncate">{item.name}</span>
             </span>
-            <span class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
+            <span
+              class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
               {bal.toLocaleString()}
             </span>
           </div>
@@ -141,7 +144,8 @@ function LeafBlock(props: {
                           </div>
                         </div>
                       }>
-                        <div class="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                        <div
+                          class="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
                           <span class="flex items-center gap-1.5">
                             <CustomerAvatar customer={c} size="sm"/>
                             <span class="text-xs font-semibold text-gray-600 dark:text-gray-300">{c.name}</span>
@@ -180,7 +184,8 @@ function GroupBlock(props: {
 }) {
   return (
     <div class={`jn-group-block mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
-      <div class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
+      <div
+        class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
         {props.account.name}
       </div>
       <For each={props.account.subAccounts}>
@@ -239,7 +244,8 @@ function RootCard(props: {
 }) {
   return (
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-      <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide pb-2 mb-1 border-b border-gray-100 dark:border-gray-700">
+      <h2
+        class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide pb-2 mb-1 border-b border-gray-100 dark:border-gray-700">
         {props.account.name}
       </h2>
       <For each={props.account.subAccounts}>
@@ -329,7 +335,8 @@ function AccountEditForm(props: { account: IAccount; onDone: () => void }) {
              placeholder="Name" class={`flex-1 min-w-32 ${inputCls}`}/>
       <input value={description()} onInput={(e) => setDescription(e.target.value)}
              placeholder="Description (optional)" class={`flex-1 min-w-40 ${inputCls}`}/>
-      <label class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 shrink-0 cursor-pointer select-none">
+      <label
+        class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 shrink-0 cursor-pointer select-none">
         <input type="checkbox" checked={customerSpecific()}
                onChange={(e) => setCustomerSpecific(e.target.checked)} class="rounded"/>
         customer-specific
@@ -351,11 +358,11 @@ function AccountEditForm(props: { account: IAccount; onDone: () => void }) {
   );
 }
 
-function AccountAddForm(props: { parentId: string | null; onDone: () => void }) {
+function AccountAddForm(props: { parentId: string | null; customerSpecific?: boolean; onDone: () => void }) {
   const [code, setCode] = createSignal("");
   const [name, setName] = createSignal("");
   const [description, setDescription] = createSignal("");
-  const [customerSpecific, setCustomerSpecific] = createSignal(false);
+  const [customerSpecific, setCustomerSpecific] = createSignal(props.customerSpecific ?? false);
   const [error, setError] = createSignal("");
 
   async function save(e: Event) {
@@ -385,7 +392,8 @@ function AccountAddForm(props: { parentId: string | null; onDone: () => void }) 
              placeholder="Name" class={`flex-1 min-w-32 ${inputCls}`}/>
       <input value={description()} onInput={(e) => setDescription(e.target.value)}
              placeholder="Description (optional)" class={`flex-1 min-w-40 ${inputCls}`}/>
-      <label class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 shrink-0 cursor-pointer select-none">
+      <label
+        class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 shrink-0 cursor-pointer select-none">
         <input type="checkbox" checked={customerSpecific()}
                onChange={(e) => setCustomerSpecific(e.target.checked)} class="rounded"/>
         customer-specific
@@ -439,12 +447,20 @@ function AccountNode(props: { account: IAccount; depth: number }) {
           <div
             class="flex items-center gap-2 ml-auto shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
             <button type="button"
-                    onClick={() => { setEditing(true); setAddingChild(false); setConfirmDelete(false); }}
+                    onClick={() => {
+                      setEditing(true);
+                      setAddingChild(false);
+                      setConfirmDelete(false);
+                    }}
                     class="text-xs text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-200 inline-flex items-center gap-1">
               <PencilIcon class="w-3 h-3"/>Edit
             </button>
             <button type="button"
-                    onClick={() => { setAddingChild(true); setEditing(false); setConfirmDelete(false); }}
+                    onClick={() => {
+                      setAddingChild(true);
+                      setEditing(false);
+                      setConfirmDelete(false);
+                    }}
                     class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 inline-flex items-center gap-1">
               <PlusIcon class="w-3 h-3"/>Sub-account
             </button>
@@ -476,7 +492,8 @@ function AccountNode(props: { account: IAccount; depth: number }) {
 
       <Show when={addingChild()}>
         <div style={{"padding-left": `${(props.depth + 1) * 1.25}rem`}}>
-          <AccountAddForm parentId={props.account.id} onDone={() => setAddingChild(false)}/>
+          <AccountAddForm parentId={props.account.id} customerSpecific={props.account.customerSpecific}
+                          onDone={() => setAddingChild(false)}/>
         </div>
       </Show>
 
