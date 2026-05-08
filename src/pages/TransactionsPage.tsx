@@ -1,4 +1,4 @@
-import {createEffect, createMemo, createSignal, For, onMount, Show} from "solid-js";
+import {createMemo, createSignal, For, onMount, Show} from "solid-js";
 import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
@@ -320,20 +320,27 @@ function TransactionForm(props: {
 
   const selectedTemplate = createMemo(() => props.templates.find(t => t.id === templateId()));
 
-  // Sync transaction-level customer to all per-customer legs
-  createEffect(() => {
-    const cid = txCustomerId();
-    if (props.mode !== "customer") return;
-    setEntries(produce(d => {
-      d.forEach(entry => {
-        entry.sources.forEach(leg => {
-          if (PER_CUSTOMER_ACCOUNTS.has(leg.accountType)) leg.customerId = cid;
-        });
-        entry.destinations.forEach(leg => {
-          if (PER_CUSTOMER_ACCOUNTS.has(leg.accountType)) leg.customerId = cid;
-        });
-      });
-    }));
+  const txData = createMemo(() => {
+    const txCustomer = txCustomerId();
+    return {
+      templateId: templateId() || null,
+      templateName: selectedTemplate()?.name ?? "Manual",
+      date: date(),
+      note: note().trim(),
+      entries: entries.map(en => ({
+        itemId: en.itemId,
+        sources: en.sources.map(l => ({
+          accountType: l.accountType,
+          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? txCustomer : null,
+          qty: Number(l.qty),
+        })),
+        destinations: en.destinations.map(l => ({
+          accountType: l.accountType,
+          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? txCustomer : null,
+          qty: Number(l.qty),
+        })),
+      })),
+    };
   });
 
   function loadTemplate(id: string) {
@@ -376,25 +383,7 @@ function TransactionForm(props: {
       setError(err);
       return;
     }
-    await addTransaction({
-      templateId: templateId() || null,
-      templateName: selectedTemplate()?.name ?? "Manual",
-      date: date(),
-      note: note().trim(),
-      entries: entries.map(en => ({
-        itemId: en.itemId,
-        sources: en.sources.map(l => ({
-          accountType: l.accountType,
-          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? l.customerId : null,
-          qty: Number(l.qty),
-        })),
-        destinations: en.destinations.map(l => ({
-          accountType: l.accountType,
-          customerId: PER_CUSTOMER_ACCOUNTS.has(l.accountType) ? l.customerId : null,
-          qty: Number(l.qty),
-        })),
-      })),
-    });
+    await addTransaction(txData());
     props.onSave();
   }
 
@@ -511,15 +500,19 @@ function TemplatePicker(props: {
                           <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Entry {i() + 1}</p>
                         </Show>
                         <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">
-                          <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
-                          <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
+                          <span
+                            class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
+                          <span
+                            class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
                           {rows.map(({src, dst}) => (
                             <>
                               {src
-                                ? <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{(ACCOUNT_LABELS as Record<string, string>)[src.accountType]}</span>
+                                ? <span
+                                  class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{(ACCOUNT_LABELS as Record<string, string>)[src.accountType]}</span>
                                 : <span/>}
                               {dst
-                                ? <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{(ACCOUNT_LABELS as Record<string, string>)[dst.accountType]}</span>
+                                ? <span
+                                  class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{(ACCOUNT_LABELS as Record<string, string>)[dst.accountType]}</span>
                                 : <span/>}
                             </>
                           ))}
