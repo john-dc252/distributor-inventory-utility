@@ -15,7 +15,8 @@ import {
   state,
   Template,
 } from "../store";
-import Modal, {ModalController} from "../components/Modal";
+import {createModal} from "../components/Modal";
+import {createConfirmModal} from "../components/ConfirmModal";
 import {CustomerAvatar} from "../components/CustomerAvatar";
 import {useSearchParams} from "@solidjs/router";
 import {inputCls, secondaryBtn, selFull} from "../components/styles";
@@ -313,6 +314,7 @@ function TransactionForm(props: {
       : [newEntry()]
   );
   const [note, setNote] = createSignal("");
+  const confirmModal = createConfirmModal();
   const [date, setDate] = createSignal(new Date().toISOString().slice(0, 10));
   const [error, setError] = createSignal("");
 
@@ -353,9 +355,12 @@ function TransactionForm(props: {
     );
   }
 
-  function handleTemplateChange(id: string) {
+  async function handleTemplateChange(id: string) {
     if (id === templateId()) return;
-    if (hasUserEnteredData() && !confirm("Changing template will replace current entries. Continue?")) return;
+    if (hasUserEnteredData()) {
+      const result = await confirmModal.prompt("Changing template will replace current entries. Continue?");
+      if (result !== 'OK') return;
+    }
     loadTemplate(id);
   }
 
@@ -395,6 +400,7 @@ function TransactionForm(props: {
 
   return (
     <form onSubmit={submit} class="space-y-5">
+      <confirmModal.Modal/>
       <Show when={state.items.length === 0}>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
           <p class="text-sm text-yellow-700 dark:text-yellow-400">No items defined yet. Add items in the
@@ -574,19 +580,96 @@ export default function TransactionsPage() {
   const initialCustomerTx = searchParams.customerTx as string | undefined;
   const [modalState, setModalState] = createSignal<TxModalState>(null);
 
-  let customerModalCtrl!: ModalController;
-  let nonCustomerModalCtrl!: ModalController;
+  const customerPickState = () => {
+    const ms = modalState();
+    return ms?.kind === "customer-pick-template" ? ms : undefined;
+  };
+  const customerFormState = () => {
+    const ms = modalState();
+    return ms?.kind === "customer-form" ? ms : undefined;
+  };
+  const nonCustomerPickState = () => {
+    const ms = modalState();
+    return ms?.kind === "non-customer-pick-template" ? ms : undefined;
+  };
+  const nonCustomerFormState = () => {
+    const ms = modalState();
+    return ms?.kind === "non-customer-form" ? ms : undefined;
+  };
+
+  const customerModal = createModal({
+    title: "New Customer Transaction",
+    size: "lg",
+    children: (resolve) => (
+      <>
+        <Show when={customerPickState()}>
+          {(ms) => (
+            <TemplatePicker
+              templates={customerTemplates()}
+              onSelect={(id) => setModalState({
+                kind: "customer-form",
+                templateId: id || undefined,
+                initialCustomerId: ms().initialCustomerId,
+              })}
+              onCancel={() => resolve('CANCELLED')}
+            />
+          )}
+        </Show>
+        <Show when={customerFormState()}>
+          {(ms) => (
+            <TransactionForm
+              mode="customer"
+              initialTemplateId={ms().templateId}
+              initialCustomerId={ms().initialCustomerId}
+              templates={customerTemplates()}
+              onSave={() => resolve('OK')}
+              onCancel={() => resolve('CANCELLED')}
+            />
+          )}
+        </Show>
+      </>
+    ),
+  });
+
+  const nonCustomerModal = createModal({
+    title: "New Non-Customer Transaction",
+    size: "lg",
+    children: (resolve) => (
+      <>
+        <Show when={nonCustomerPickState()}>
+          <TemplatePicker
+            templates={nonCustomerTemplates()}
+            onSelect={(id) => setModalState({kind: "non-customer-form", templateId: id || undefined})}
+            onCancel={() => resolve('CANCELLED')}
+          />
+        </Show>
+        <Show when={nonCustomerFormState()}>
+          {(ms) => (
+            <TransactionForm
+              mode="non-customer"
+              initialTemplateId={ms().templateId}
+              templates={nonCustomerTemplates()}
+              onSave={() => resolve('OK')}
+              onCancel={() => resolve('CANCELLED')}
+            />
+          )}
+        </Show>
+      </>
+    ),
+  });
+
+  const confirmModal = createConfirmModal();
 
   async function openCustomerTx(initialCustomerId = "") {
     setSearchParams({customerTx: undefined});
     setModalState({kind: "customer-pick-template", initialCustomerId});
-    await customerModalCtrl.prompt();
+    await customerModal.prompt();
     setModalState(null);
   }
 
   async function openNonCustomerTx() {
     setModalState({kind: "non-customer-pick-template"});
-    await nonCustomerModalCtrl.prompt();
+    await nonCustomerModal.prompt();
     setModalState(null);
   }
 
@@ -614,26 +697,9 @@ export default function TransactionsPage() {
     });
   });
 
-  // Typed accessors for modal sub-states
-  const customerPickState = () => {
-    const ms = modalState();
-    return ms?.kind === "customer-pick-template" ? ms : undefined;
-  };
-  const customerFormState = () => {
-    const ms = modalState();
-    return ms?.kind === "customer-form" ? ms : undefined;
-  };
-  const nonCustomerPickState = () => {
-    const ms = modalState();
-    return ms?.kind === "non-customer-pick-template" ? ms : undefined;
-  };
-  const nonCustomerFormState = () => {
-    const ms = modalState();
-    return ms?.kind === "non-customer-form" ? ms : undefined;
-  };
-
-  function handleDelete(id: string) {
-    if (confirm("Delete this transaction? This will affect account balances.")) deleteTransaction(id);
+  async function handleDelete(id: string) {
+    const result = await confirmModal.prompt("Delete this transaction? This will affect account balances.");
+    if (result === 'OK') deleteTransaction(id);
   }
 
   return (
@@ -654,72 +720,9 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* ── Customer transaction modal ── */}
-      <Modal
-        modalControllerRef={(ctrl) => (customerModalCtrl = ctrl)}
-        title="New Customer Transaction"
-        size="lg"
-      >
-        {(resolve) => (
-          <>
-            <Show when={customerPickState()}>
-              {(ms) => (
-                <TemplatePicker
-                  templates={customerTemplates()}
-                  onSelect={(id) => setModalState({
-                    kind: "customer-form",
-                    templateId: id || undefined,
-                    initialCustomerId: ms().initialCustomerId,
-                  })}
-                  onCancel={() => resolve('CANCELLED')}
-                />
-              )}
-            </Show>
-            <Show when={customerFormState()}>
-              {(ms) => (
-                <TransactionForm
-                  mode="customer"
-                  initialTemplateId={ms().templateId}
-                  initialCustomerId={ms().initialCustomerId}
-                  templates={customerTemplates()}
-                  onSave={() => resolve('OK')}
-                  onCancel={() => resolve('CANCELLED')}
-                />
-              )}
-            </Show>
-          </>
-        )}
-      </Modal>
-
-      {/* ── Non-customer transaction modal ── */}
-      <Modal
-        modalControllerRef={(ctrl) => (nonCustomerModalCtrl = ctrl)}
-        title="New Non-Customer Transaction"
-        size="lg"
-      >
-        {(resolve) => (
-          <>
-            <Show when={nonCustomerPickState()}>
-              <TemplatePicker
-                templates={nonCustomerTemplates()}
-                onSelect={(id) => setModalState({kind: "non-customer-form", templateId: id || undefined})}
-                onCancel={() => resolve('CANCELLED')}
-              />
-            </Show>
-            <Show when={nonCustomerFormState()}>
-              {(ms) => (
-                <TransactionForm
-                  mode="non-customer"
-                  initialTemplateId={ms().templateId}
-                  templates={nonCustomerTemplates()}
-                  onSave={() => resolve('OK')}
-                  onCancel={() => resolve('CANCELLED')}
-                />
-              )}
-            </Show>
-          </>
-        )}
-      </Modal>
+      <customerModal.Modal/>
+      <nonCustomerModal.Modal/>
+      <confirmModal.Modal/>
 
       {/* ── Filters ── */}
       <div class="flex gap-3 mb-4 flex-wrap">

@@ -1,6 +1,7 @@
 import {createEffect, createSignal, For, Show} from "solid-js";
 import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from "../store";
-import Modal, {ModalController} from "../components/Modal";
+import {createModal} from "../components/Modal";
+import {createConfirmModal} from "../components/ConfirmModal";
 import {ItemCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
@@ -111,20 +112,37 @@ function ItemForm(props: {
 }
 
 export default function ItemsPage() {
-  let itemModalCtrl!: ModalController;
   const [modal, setModal] = createSignal<"add" | Item | undefined>();
 
   const isEditing = () => modal() && modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Item" : "Edit Item";
+
+  const itemModal = createModal({
+    title: () => modal() === "add" ? "New Item" : "Edit Item",
+    children: (resolve) => (
+      <ItemForm
+        initial={isEditing() ? (modal() as Item) : undefined}
+        onSave={async (fields) => {
+          const m = modal();
+          if (m === "add") await addItem(fields);
+          else if (m) await updateItem(m.id, fields);
+          resolve('OK');
+        }}
+        onCancel={() => resolve('CANCELLED')}
+      />
+    ),
+  });
+
+  const confirmModal = createConfirmModal();
 
   async function openModal(m: "add" | Item) {
     setModal(m);
-    await itemModalCtrl.prompt();
+    await itemModal.prompt();
     setModal(undefined);
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Delete this item? Existing transactions referencing it will still show its ID.")) deleteItem(id).then();
+  async function handleDelete(id: string) {
+    const result = await confirmModal.prompt("Delete this item? Existing transactions referencing it will still show its ID.");
+    if (result === 'OK') deleteItem(id).then();
   }
 
   createEffect(() => {
@@ -141,20 +159,8 @@ export default function ItemsPage() {
         </button>
       </div>
 
-      <Modal modalControllerRef={(ctrl) => (itemModalCtrl = ctrl)} title={modalTitle()}>
-        {(resolve) => (
-          <ItemForm
-            initial={isEditing() ? (modal() as Item) : undefined}
-            onSave={async (fields) => {
-              const m = modal();
-              if (m === "add") await addItem(fields);
-              else if (m) await updateItem(m.id, fields);
-              resolve('OK');
-            }}
-            onCancel={() => resolve('CANCELLED')}
-          />
-        )}
-      </Modal>
+      <itemModal.Modal/>
+      <confirmModal.Modal/>
 
       <Show when={isLoaded()} fallback={
         <div class="space-y-3">

@@ -2,11 +2,14 @@ import {createMemo, createSignal, For, Show} from "solid-js";
 import {deleteTransaction, state} from "../store";
 import {inputCls} from "../components/styles";
 import {EntryBlock} from "../components/EntryBlock";
+import {createConfirmModal} from "../components/ConfirmModal";
 
 export default function HistoryPage() {
   const [search, setSearch] = createSignal("");
   const [filterCustomer, setFilterCustomer] = createSignal("");
   const [filterItem, setFilterItem] = createSignal("");
+
+  const confirmModal = createConfirmModal();
 
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
@@ -25,13 +28,16 @@ export default function HistoryPage() {
     });
   });
 
-  function handleDelete(id: string) {
-    if (confirm("Delete this transaction? This will affect account balances.")) deleteTransaction(id);
+  async function handleDelete(id: string) {
+    const result = await confirmModal.prompt("Delete this transaction? This will affect account balances.");
+    if (result === 'OK') deleteTransaction(id);
   }
 
   return (
     <div>
       <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Transaction History</h1>
+
+      <confirmModal.Modal/>
 
       <div class="flex gap-3 mb-4 flex-wrap">
         <input

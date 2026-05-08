@@ -1,6 +1,7 @@
 import {createSignal, For, Show} from "solid-js";
 import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} from "../store";
-import Modal, {ModalController} from "../components/Modal";
+import {createModal} from "../components/Modal";
+import {createConfirmModal} from "../components/ConfirmModal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
 import {useNavigate} from "@solidjs/router";
 import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
@@ -82,20 +83,37 @@ function CustomerForm(props: {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
-  let customerModalCtrl!: ModalController;
   const [modal, setModal] = createSignal<"add" | Customer | undefined>();
 
   const isEditing = () => modal() && modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Customer" : "Edit Customer";
+
+  const customerModal = createModal({
+    title: () => modal() === "add" ? "New Customer" : "Edit Customer",
+    children: (resolve) => (
+      <CustomerForm
+        initial={isEditing() ? (modal() as Customer) : undefined}
+        onSave={async (fields) => {
+          const m = modal();
+          if (m === "add") await addCustomer(fields);
+          else if (m) await updateCustomer(m.id, fields);
+          resolve('OK');
+        }}
+        onCancel={() => resolve('CANCELLED')}
+      />
+    ),
+  });
+
+  const confirmModal = createConfirmModal();
 
   async function openModal(m: "add" | Customer) {
     setModal(m);
-    await customerModalCtrl.prompt();
+    await customerModal.prompt();
     setModal(undefined);
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Delete this customer? Their account history will remain in transactions.")) deleteCustomer(id);
+  async function handleDelete(id: string) {
+    const result = await confirmModal.prompt("Delete this customer? Their account history will remain in transactions.");
+    if (result === 'OK') deleteCustomer(id);
   }
 
   return (
@@ -108,20 +126,8 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <Modal modalControllerRef={(ctrl) => (customerModalCtrl = ctrl)} title={modalTitle()}>
-        {(resolve) => (
-          <CustomerForm
-            initial={isEditing() ? (modal() as Customer) : undefined}
-            onSave={async (fields) => {
-              const m = modal();
-              if (m === "add") await addCustomer(fields);
-              else if (m) await updateCustomer(m.id, fields);
-              resolve('OK');
-            }}
-            onCancel={() => resolve('CANCELLED')}
-          />
-        )}
-      </Modal>
+      <customerModal.Modal/>
+      <confirmModal.Modal/>
 
       <Show when={isLoaded()} fallback={
         <div class="space-y-3">

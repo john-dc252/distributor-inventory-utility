@@ -13,7 +13,8 @@ import {
   TemplateEntry,
   updateTemplate
 } from "../store";
-import Modal, {ModalController} from "../components/Modal";
+import {createModal} from "../components/Modal";
+import {createConfirmModal} from "../components/ConfirmModal";
 import {TemplateCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
@@ -255,26 +256,42 @@ function EntryPreview(props: { entry: TemplateEntry }) {
 }
 
 export default function TemplatesPage() {
-  let templateModalCtrl!: ModalController;
   const [modal, setModal] = createSignal<"add" | Template | undefined>();
 
   const isEditing = () => modal() && modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Template" : "Edit Template";
+
+  const templateModal = createModal({
+    title: () => modal() === "add" ? "New Template" : "Edit Template",
+    children: (resolve) => (
+      <TemplateForm
+        initial={isEditing() ? (modal() as Template) : undefined}
+        onSave={async (fields) => {
+          const m = modal();
+          if (m === "add") await addTemplate(fields);
+          else if (m) await updateTemplate(m.id, fields);
+          resolve('OK');
+        }}
+        onCancel={() => resolve('CANCELLED')}
+      />
+    ),
+  });
+
+  const confirmModal = createConfirmModal();
 
   async function openModal(m: "add" | Template) {
     setModal(m);
-    await templateModalCtrl.prompt();
+    await templateModal.prompt();
     setModal(undefined);
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Delete this template?")) deleteTemplate(id).then();
+  async function handleDelete(id: string) {
+    const result = await confirmModal.prompt("Delete this template?");
+    if (result === 'OK') deleteTemplate(id).then();
   }
 
-  function handleReset() {
-    if (confirm("Reset all templates to defaults? Custom templates will be lost.")) {
-      resetTemplatesToDefault().then();
-    }
+  async function handleReset() {
+    const result = await confirmModal.prompt("Reset all templates to defaults? Custom templates will be lost.");
+    if (result === 'OK') resetTemplatesToDefault().then();
   }
 
   return (
@@ -293,23 +310,8 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      <Modal
-        modalControllerRef={(ctrl) => (templateModalCtrl = ctrl)}
-        title={modalTitle()}
-      >
-        {(resolve) => (
-          <TemplateForm
-            initial={isEditing() ? (modal() as Template) : undefined}
-            onSave={async (fields) => {
-              const m = modal();
-              if (m === "add") await addTemplate(fields);
-              else if (m) await updateTemplate(m.id, fields);
-              resolve('OK');
-            }}
-            onCancel={() => resolve('CANCELLED')}
-          />
-        )}
-      </Modal>
+      <templateModal.Modal/>
+      <confirmModal.Modal/>
 
       <Show when={isLoaded()} fallback={
         <div class="space-y-3">
