@@ -38,7 +38,7 @@ function ItemRows(props: {
           bal: computeBalance(props.accountType, props.customerId, item.id, state.transactions),
         })
       )
-      .map(summary => isNegativeSupplierAccount() ? {...summary, bal: 0 + -summary.bal} : summary)
+      .map(summary => isNegativeSupplierAccount() ? {...summary, bal: normalizeZero(summary.bal)} : summary)
       .filter(r => props.showZero || r.bal !== 0)
       .toArray();
   });
@@ -84,11 +84,15 @@ function LeafBlock(props: {
 
   function getBal(customerId: string | null, itemId: string): number {
     const raw = computeBalance(acctType, customerId, itemId, state.transactions);
-    return isNeg ? 0 + -raw : raw;
+    return isNeg ? normalizeZero(raw) : raw;
   }
 
   function balCls(bal: number) {
     return `text-sm font-mono font-semibold shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`;
+  }
+
+  function customerHasQtyForAnyItem(c: Customer) {
+    return props.items.some(item => computeBalance(acctType, c.id, item.id, state.transactions) !== 0);
   }
 
   // When a specific item is selected (showZero=true, items.length=1), collapse to inline label+balance
@@ -99,7 +103,7 @@ function LeafBlock(props: {
     : "pl-1 text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5";
 
   return (
-    <div class={`mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
+    <div class={`jn-leaf-block mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
       <Show when={compact() && !iterCustomers} fallback={
         <>
           <div class={labelCls()}>
@@ -121,7 +125,7 @@ function LeafBlock(props: {
                   {(c) => (
                     <Show when={compact()
                       ? getBal(c.id, props.items[0].id) !== 0
-                      : props.items.some(item => computeBalance(acctType, c.id, item.id, state.transactions) !== 0)
+                      : customerHasQtyForAnyItem(c)
                     }>
                       <Show when={compact()} fallback={
                         <div class="mb-3">
@@ -179,7 +183,7 @@ function GroupBlock(props: {
   depth: number;
 }) {
   return (
-    <div class={`mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
+    <div class={`jn-group-block mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
       <div
         class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
         {getLabel(props.account.type)}
@@ -320,7 +324,7 @@ export default function AccountsPage() {
       <div class="flex items-center gap-2 w-full sm:w-2/3 lg:w-2/5 mb-6">
         <label class="text-sm text-gray-600 dark:text-gray-400">Item:</label>
         <div class="flex-1">
-          <ItemCombobox value={selectedItemId()} onSelect={id => setSelectedItemId(id)} allowAll />
+          <ItemCombobox value={selectedItemId()} onSelect={id => setSelectedItemId(id)} allowAll/>
         </div>
       </div>
 
@@ -374,4 +378,9 @@ export default function AccountsPage() {
       </Show>
     </div>
   );
+}
+
+function normalizeZero(raw: number) {
+  // JS quirk allows for `-0` so we have to add `0` to normalize it
+  return -raw || 0;
 }
