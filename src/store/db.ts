@@ -1,4 +1,4 @@
-const DB_NAME = "inventory-db";
+const DB_NAME = "inventory-db@v2";
 const STORE_NAME = "kv";
 
 function openDB(): Promise<IDBDatabase> {

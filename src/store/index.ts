@@ -5,160 +5,144 @@ import {createEffect, createSignal} from "solid-js";
 
 // ── Account schema ─────────────────────────────────────────────────────────────
 export interface Account {
-  code: string;
+  id: string;          // stable UUID – used as reference in transaction legs
+  code: string;        // display code – editable, no referential meaning
   name: string;
   subAccounts: Account[];
   description?: string;
   customerSpecific: boolean;
 }
 
-// ── Account type constants (codes – kept for backward compat with stored data) ─
-export const ACCOUNT_TYPES = {
-  RELAYED_TO_DISTRIBUTOR: 'RELAYED_TO_DISTRIBUTOR',
-  SUPPLIER_DELIVERED: 'SUPPLIER_DELIVERED',
-  RETURNED_UNITS_S: 'RETURNED_UNITS_S',
-  USABLE_RETURNED_S: 'USABLE_RETURNED_S',
-  DEFECTIVE_RETURNED_S: 'DEFECTIVE_RETURNED_S',
-  HELD_UNITS: 'HELD_UNITS',
-  RETURNED_UNITS_D: 'RETURNED_UNITS_D',
-  USABLE_RETURNED_D: 'USABLE_RETURNED_D',
-  DEFECTIVE_RETURNED_D: 'DEFECTIVE_RETURNED_D',
-  DELIVERED_UNITS: 'DELIVERED_UNITS',
-  OTHER: 'OTHER',
+export type AccountType = string; // stores account UUID
+
+// ── Stable UUIDs for predefined accounts ──────────────────────────────────────
+export const PREDEFINED_ACCOUNT_IDS = {
+  // Root accounts
+  DISTRIBUTOR_INVENTORY: "a016acf2-551f-4640-aec9-e41d0eb17635",
+  SUPPLIER_INVENTORY: "dfe579ed-cbab-4138-9cb1-e1a5c4c992d5",
+  CUSTOMER_INVENTORY: "85d62c23-3f6d-4744-aa95-2fa862f184a9",
+  OTHERS: "668bec34-e3ed-4ba0-a1a8-beaeb36e61ec",
+  // Distributor sub-accounts (1xxxxx)
+  HELD_UNITS: "1dd4cd20-482a-4428-b256-89aa9312e9fd",
+  RETURNED_UNITS_D: "e54d4b1d-5720-449b-b5e8-7b28c68c3418",
+  USABLE_RETURNED_D: "8d43848f-d2fa-4bbb-b58f-9b0c2de83dbe",
+  DEFECTIVE_RETURNED_D: "39f2c70f-1387-4e4c-a7de-d962e94edd88",
+  // Supplier sub-accounts (2xxxxx)
+  SUPPLIER_DELIVERED: "fd962c64-5ab9-4f2b-8533-bd21a1490567",
+  RELAYED_TO_DISTRIBUTOR: "88e644cc-f4ed-4a1f-be7b-162665656e43",
+  RETURNED_UNITS_S: "8e3701b1-8bd5-4e2b-b832-70e3781d1125",
+  USABLE_RETURNED_S: "caa9b722-a29d-41a6-b5c6-635c17f7a602",
+  DEFECTIVE_RETURNED_S: "f2ebe8eb-fbba-4009-83f8-f50be1ba1308",
+  // Customer sub-accounts (3xxxxx)
+  DELIVERED_UNITS: "8436a4ba-87c9-45c8-bf2b-9cfceb994968",
 } as const;
 
-export type AccountType = string;
+export const PREDEFINED_ACCOUNT_ID_SET = new Set<string>(Object.values(PREDEFINED_ACCOUNT_IDS));
 
 // ── Default account hierarchy ──────────────────────────────────────────────────
+const ACCT = PREDEFINED_ACCOUNT_IDS; // shorthand
+
 export const DEFAULT_ACCOUNTS: Account[] = [
   {
-    code: "DISTRIBUTOR_INVENTORY",
-    name: "Distributor Inventory",
+    id: ACCT.DISTRIBUTOR_INVENTORY, code: "10000", name: "Distributor Inventory",
     customerSpecific: false,
     subAccounts: [
       {
-        code: ACCOUNT_TYPES.HELD_UNITS,
-        name: "Held Units",
-        customerSpecific: true,
-        subAccounts: [],
+        id: ACCT.HELD_UNITS, code: "11000", name: "Held Units",
+        customerSpecific: true, subAccounts: [],
       },
       {
-        code: ACCOUNT_TYPES.RETURNED_UNITS_D,
-        name: "Returned Units (Distributor)",
+        id: ACCT.RETURNED_UNITS_D, code: "12000", name: "Returned Units (Distributor)",
         customerSpecific: false,
         subAccounts: [
           {
-            code: ACCOUNT_TYPES.USABLE_RETURNED_D,
-            name: "Usable Returned Units (Distributor)",
-            customerSpecific: false,
-            subAccounts: [],
+            id: ACCT.USABLE_RETURNED_D, code: "12100", name: "Usable Returned Units (Distributor)",
+            customerSpecific: false, subAccounts: [],
           },
           {
-            code: ACCOUNT_TYPES.DEFECTIVE_RETURNED_D,
-            name: "Defective Returned Units (Distributor)",
-            customerSpecific: false,
-            subAccounts: [],
+            id: ACCT.DEFECTIVE_RETURNED_D, code: "12200", name: "Defective Returned Units (Distributor)",
+            customerSpecific: false, subAccounts: [],
           },
         ],
       },
     ],
   },
   {
-    code: "SUPPLIER_INVENTORY",
-    name: "Supplier Inventory",
+    id: ACCT.SUPPLIER_INVENTORY, code: "20000", name: "Supplier Inventory",
     customerSpecific: false,
     subAccounts: [
       {
-        code: ACCOUNT_TYPES.SUPPLIER_DELIVERED,
-        name: "Delivered by Supplier",
-        customerSpecific: false,
-        subAccounts: [],
+        id: ACCT.SUPPLIER_DELIVERED, code: "21000", name: "Delivered by Supplier",
+        customerSpecific: false, subAccounts: [],
       },
       {
-        code: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR,
-        name: "Relayed to Distributor",
-        customerSpecific: false,
-        subAccounts: [],
+        id: ACCT.RELAYED_TO_DISTRIBUTOR, code: "22000", name: "Relayed to Distributor",
+        customerSpecific: false, subAccounts: [],
       },
       {
-        code: ACCOUNT_TYPES.RETURNED_UNITS_S,
-        name: "Returned Units (Supplier)",
+        id: ACCT.RETURNED_UNITS_S, code: "23000", name: "Returned Units (Supplier)",
         customerSpecific: false,
         subAccounts: [
           {
-            code: ACCOUNT_TYPES.USABLE_RETURNED_S,
-            name: "Usable Returned Units (Supplier)",
-            customerSpecific: false,
-            subAccounts: [],
+            id: ACCT.USABLE_RETURNED_S, code: "23100", name: "Usable Returned Units (Supplier)",
+            customerSpecific: false, subAccounts: [],
           },
           {
-            code: ACCOUNT_TYPES.DEFECTIVE_RETURNED_S,
-            name: "Defective Returned Units (Supplier)",
-            customerSpecific: false,
-            subAccounts: [],
+            id: ACCT.DEFECTIVE_RETURNED_S, code: "23200", name: "Defective Returned Units (Supplier)",
+            customerSpecific: false, subAccounts: [],
           },
         ],
       },
     ],
   },
   {
-    code: "CUSTOMER_INVENTORY",
-    name: "Customer Inventory",
+    id: ACCT.CUSTOMER_INVENTORY, code: "30000", name: "Customer Inventory",
     customerSpecific: false,
     subAccounts: [
       {
-        code: ACCOUNT_TYPES.DELIVERED_UNITS,
-        name: "Delivered Units",
-        customerSpecific: true,
-        subAccounts: [],
+        id: ACCT.DELIVERED_UNITS, code: "31000", name: "Delivered Units",
+        customerSpecific: true, subAccounts: [],
       },
     ],
+  },
+  {
+    id: ACCT.OTHERS, code: "40000", name: "Others",
+    customerSpecific: false, subAccounts: [],
   },
 ];
 
-// ── Predefined account codes (can be edited but not deleted) ───────────────────
-function collectCodes(accounts: Account[]): string[] {
+// ── Supplier negative-sign sub-accounts (static) ───────────────────────────────
+function getDescendantIds(account: Account): string[] {
   const result: string[] = [];
-  function walk(accs: Account[]) {
-    for (const acc of accs) {
-      result.push(acc.code);
-      walk(acc.subAccounts);
-    }
-  }
-  walk(accounts);
-  return result;
-}
 
-export const PREDEFINED_ACCOUNT_CODES = new Set<string>(collectCodes(DEFAULT_ACCOUNTS));
-
-// ── Supplier negative-sign accounts (static, derived from DEFAULT_ACCOUNTS) ────
-function getDescendantCodes(account: Account): string[] {
-  const result: string[] = [];
   function walk(acc: Account) {
     for (const child of acc.subAccounts) {
-      result.push(child.code);
+      result.push(child.id);
       walk(child);
     }
   }
+
   walk(account);
   return result;
 }
 
-const _SUPPLIER_RETURNED = new Set<string>([ACCOUNT_TYPES.USABLE_RETURNED_S, ACCOUNT_TYPES.DEFECTIVE_RETURNED_S]);
-const _supplierDefault = DEFAULT_ACCOUNTS.find(a => a.code === "SUPPLIER_INVENTORY")!;
+const _SUPPLIER_RETURNED_IDS = new Set<string>([ACCT.USABLE_RETURNED_S, ACCT.DEFECTIVE_RETURNED_S]);
+const _supplierDefault = DEFAULT_ACCOUNTS.find(a => a.id === ACCT.SUPPLIER_INVENTORY)!;
 export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
-  getDescendantCodes(_supplierDefault).filter(c => !_SUPPLIER_RETURNED.has(c))
+  getDescendantIds(_supplierDefault).filter(id => !_SUPPLIER_RETURNED_IDS.has(id))
 ));
 
-// ── Pure account tree helpers (do not need state) ─────────────────────────────
+// ── Pure account tree helpers ──────────────────────────────────────────────────
 export function getLeafAccounts(accounts: Account[]): Account[] {
   const result: Account[] = [];
+
   function walk(accs: Account[]) {
     for (const acc of accs) {
       if (acc.subAccounts.length === 0) result.push(acc);
       else walk(acc.subAccounts);
     }
   }
+
   walk(accounts);
   return result;
 }
@@ -181,7 +165,7 @@ export interface Customer {
 }
 
 export interface Leg {
-  accountType: AccountType;
+  accountType: AccountType; // stores account UUID
   customerId?: string | null;
   qty: number;
 }
@@ -221,78 +205,78 @@ export interface StoreState {
   accounts: Account[];
 }
 
-// ── Default transaction templates ─────────────────────────────────────────────
+// ── Default transaction templates (accountType = account UUID) ─────────────────
 export const DEFAULT_TEMPLATES = [
   {
     id: "tpl-1",
     name: "Supplier delivered units to customer",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.SUPPLIER_DELIVERED}],
-      destinations: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}]
+      sources: [{accountType: ACCT.SUPPLIER_DELIVERED}],
+      destinations: [{accountType: ACCT.DELIVERED_UNITS}],
     }],
   },
   {
     id: "tpl-2",
     name: "Unpaid units received by distributor from supplier",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR}],
-      destinations: [{accountType: ACCOUNT_TYPES.HELD_UNITS}]
+      sources: [{accountType: ACCT.RELAYED_TO_DISTRIBUTOR}],
+      destinations: [{accountType: ACCT.HELD_UNITS}],
     }],
   },
   {
     id: "tpl-3",
     name: "Units delivered by distributor to customer after payment",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.HELD_UNITS}],
-      destinations: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}]
+      sources: [{accountType: ACCT.HELD_UNITS}],
+      destinations: [{accountType: ACCT.DELIVERED_UNITS}],
     }],
   },
   {
     id: "tpl-4",
     name: "Customer returned usable units to distributor",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCOUNT_TYPES.USABLE_RETURNED_D}]
+      sources: [{accountType: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountType: ACCT.USABLE_RETURNED_D}],
     }],
   },
   {
     id: "tpl-5",
     name: "Customer returned defective units to distributor",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCOUNT_TYPES.DEFECTIVE_RETURNED_D}]
+      sources: [{accountType: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_D}],
     }],
   },
   {
     id: "tpl-6",
     name: "Customer returned usable units to supplier",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCOUNT_TYPES.USABLE_RETURNED_S}]
+      sources: [{accountType: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountType: ACCT.USABLE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-7",
     name: "Customer returned defective units to supplier",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.DELIVERED_UNITS}],
-      destinations: [{accountType: ACCOUNT_TYPES.DEFECTIVE_RETURNED_S}]
+      sources: [{accountType: ACCT.DELIVERED_UNITS}],
+      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-8",
     name: "Distributor returned usable units to supplier",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.USABLE_RETURNED_D}],
-      destinations: [{accountType: ACCOUNT_TYPES.USABLE_RETURNED_S}]
+      sources: [{accountType: ACCT.USABLE_RETURNED_D}],
+      destinations: [{accountType: ACCT.USABLE_RETURNED_S}],
     }],
   },
   {
     id: "tpl-9",
     name: "Distributor returned defective units to supplier",
     entries: [{
-      sources: [{accountType: ACCOUNT_TYPES.DEFECTIVE_RETURNED_D}],
-      destinations: [{accountType: ACCOUNT_TYPES.DEFECTIVE_RETURNED_S}]
+      sources: [{accountType: ACCT.DEFECTIVE_RETURNED_D}],
+      destinations: [{accountType: ACCT.DEFECTIVE_RETURNED_S}],
     }],
   },
 ];
@@ -337,25 +321,35 @@ function suspend(t: number) {
   return new Promise<void>(resolve => setTimeout(() => resolve(), t));
 }
 
-// ── Reactive account helpers (read state.accounts) ────────────────────────────
-function findAccount(accounts: Account[], code: string): Account | undefined {
+// ── Reactive account helpers ───────────────────────────────────────────────────
+function findAccountById(accounts: Account[], id: string): Account | undefined {
   for (const acc of accounts) {
-    if (acc.code === code) return acc;
-    const found = findAccount(acc.subAccounts, code);
+    if (acc.id === id) return acc;
+    const found = findAccountById(acc.subAccounts, id);
     if (found) return found;
   }
 }
 
-export function getAccountLabel(code: string): string {
-  return findAccount(state.accounts, code)?.name ?? code;
+function findAccountByCode(accounts: Account[], code: string): Account | undefined {
+  for (const acc of accounts) {
+    if (acc.code === code) return acc;
+    const found = findAccountByCode(acc.subAccounts, code);
+    if (found) return found;
+  }
 }
 
-export function isPerCustomer(code: string): boolean {
-  return findAccount(state.accounts, code)?.customerSpecific ?? false;
+export function getAccountLabel(id: string): string {
+  return findAccountById(state.accounts, id)?.name ?? id;
 }
 
-export function accountCodeExists(code: string): boolean {
-  return !!findAccount(state.accounts, code);
+export function isPerCustomer(id: string): boolean {
+  return findAccountById(state.accounts, id)?.customerSpecific ?? false;
+}
+
+export function accountCodeExists(code: string, excludeId?: string): boolean {
+  const found = findAccountByCode(state.accounts, code);
+  if (!found) return false;
+  return found.id !== excludeId;
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -460,16 +454,17 @@ export async function deleteTransaction(id: string) {
 }
 
 // ── Account actions ───────────────────────────────────────────────────────────
-export async function addAccount(parentCode: string | null, account: Omit<Account, "subAccounts">) {
-  const newAccount: Account = {...account, subAccounts: []};
+export async function addAccount(parentId: string | null, account: Omit<Account, "id" | "subAccounts">) {
+  const newAccount: Account = {...account, id: newId(), subAccounts: []};
   setState("accounts", produce((accs) => {
-    if (parentCode === null) {
+    if (parentId === null) {
       accs.push(newAccount);
       return;
     }
+
     function addToParent(list: Account[]): boolean {
       for (const acc of list) {
-        if (acc.code === parentCode) {
+        if (acc.id === parentId) {
           acc.subAccounts.push(newAccount);
           return true;
         }
@@ -477,16 +472,17 @@ export async function addAccount(parentCode: string | null, account: Omit<Accoun
       }
       return false;
     }
+
     addToParent(accs);
   }));
   await persist(["accounts"]);
 }
 
-export async function updateAccount(code: string, fields: Partial<Omit<Account, "code" | "subAccounts">>) {
+export async function updateAccount(id: string, fields: Partial<Omit<Account, "id" | "subAccounts">>) {
   setState("accounts", produce((accs) => {
     function update(list: Account[]): boolean {
       for (const acc of list) {
-        if (acc.code === code) {
+        if (acc.id === id) {
           Object.assign(acc, fields);
           return true;
         }
@@ -494,15 +490,16 @@ export async function updateAccount(code: string, fields: Partial<Omit<Account, 
       }
       return false;
     }
+
     update(accs);
   }));
   await persist(["accounts"]);
 }
 
-export async function deleteAccount(code: string) {
+export async function deleteAccount(id: string) {
   setState("accounts", produce((accs) => {
     function remove(list: Account[]): boolean {
-      const idx = list.findIndex(a => a.code === code);
+      const idx = list.findIndex(a => a.id === id);
       if (idx !== -1) {
         list.splice(idx, 1);
         return true;
@@ -512,6 +509,7 @@ export async function deleteAccount(code: string) {
       }
       return false;
     }
+
     remove(accs);
   }));
   await persist(["accounts"]);

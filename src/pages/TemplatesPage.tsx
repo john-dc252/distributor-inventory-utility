@@ -1,12 +1,12 @@
 import {createSignal, For, Show} from "solid-js";
 import {
-  ACCOUNT_TYPES,
   AccountType,
   addTemplate,
   DEFAULT_TEMPLATES,
   deleteTemplate,
   getAccountLabel,
   isLoaded,
+  PREDEFINED_ACCOUNT_IDS,
   resetTemplatesToDefault,
   state,
   Template,
@@ -30,7 +30,7 @@ interface TemplateFormEntry {
 }
 
 function newLeg(): TemplateFormLeg {
-  return {accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR};
+  return {accountType: PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR};
 }
 
 function newEntry(): TemplateFormEntry {
@@ -42,7 +42,7 @@ function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const normalized = legsArray.values()
     .map((leg) => {
       const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
-      return {accountType: accountType ?? ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR};
+      return {accountType: accountType ?? PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR};
     })
     .filter((leg) => leg.accountType)
     .toArray();

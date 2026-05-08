@@ -3,7 +3,6 @@ import {TransactionCardSkeleton} from "../components/Skeleton";
 import {createStore, produce, reconcile} from "solid-js/store";
 import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {
-  ACCOUNT_TYPES,
   AccountType,
   addTransaction,
   Customer,
@@ -12,6 +11,7 @@ import {
   getAccountLabel,
   isLoaded,
   isPerCustomer,
+  PREDEFINED_ACCOUNT_IDS,
   state,
   Template,
 } from "../store";
@@ -50,7 +50,7 @@ interface FormEntry {
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
-  return {accountType: ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR, customerId: "", qty: ""};
+  return {accountType: PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR, customerId: "", qty: ""};
 }
 
 function newEntry(): FormEntry {
@@ -63,7 +63,7 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
     .map((leg: any) => {
       const accountType = (typeof leg === "string" ? leg : leg?.accountType) as AccountType;
       return {
-        accountType: accountType ?? ACCOUNT_TYPES.RELAYED_TO_DISTRIBUTOR,
+        accountType: accountType ?? PREDEFINED_ACCOUNT_IDS.RELAYED_TO_DISTRIBUTOR,
         customerId: leg?.customerId ?? "",
         qty: leg?.qty ?? "",
       };

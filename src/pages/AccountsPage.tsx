@@ -8,7 +8,8 @@ import {
   deleteAccount,
   isLoaded,
   Item,
-  PREDEFINED_ACCOUNT_CODES,
+  PREDEFINED_ACCOUNT_IDS,
+  PREDEFINED_ACCOUNT_ID_SET,
   state,
   SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS,
   updateAccount,
@@ -19,7 +20,6 @@ import {ItemCombobox} from "../components/ItemCombobox";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputCls, secondaryBtn} from "../components/styles";
 
-// ── Tab state ─────────────────────────────────────────────────────────────────
 type Tab = "summary" | "manage";
 
 function normalizeZero(raw: number) {
@@ -29,16 +29,16 @@ function normalizeZero(raw: number) {
 // ── Summary tab components ────────────────────────────────────────────────────
 
 function ItemRows(props: {
-  accountCode: string;
+  accountId: string;
   customerId: string | null;
   items: Item[];
   showZero: boolean;
 }) {
-  const isNeg = SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(props.accountCode);
+  const isNeg = SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(props.accountId);
   const rows = createMemo(() =>
     props.items.values()
       .map(item => {
-        const raw = computeBalance(props.accountCode, props.customerId, item.id, state.transactions);
+        const raw = computeBalance(props.accountId, props.customerId, item.id, state.transactions);
         return {item, bal: isNeg ? normalizeZero(raw) : raw};
       })
       .filter(r => props.showZero || r.bal !== 0)
@@ -76,11 +76,11 @@ function LeafBlock(props: {
   showZero: boolean;
   depth: number;
 }) {
-  const isNeg = SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(props.account.code);
+  const isNeg = SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS.has(props.account.id);
   const iterCustomers = () => props.account.customerSpecific && props.fixedCustomerId === null;
 
   function getBal(customerId: string | null, itemId: string): number {
-    const raw = computeBalance(props.account.code, customerId, itemId, state.transactions);
+    const raw = computeBalance(props.account.id, customerId, itemId, state.transactions);
     return isNeg ? normalizeZero(raw) : raw;
   }
 
@@ -89,7 +89,7 @@ function LeafBlock(props: {
   }
 
   function customerHasQtyForAnyItem(c: Customer) {
-    return props.items.some(item => computeBalance(props.account.code, c.id, item.id, state.transactions) !== 0);
+    return props.items.some(item => computeBalance(props.account.id, c.id, item.id, state.transactions) !== 0);
   }
 
   function anyCustomerHasQtyForAnyItem() {
@@ -110,7 +110,7 @@ function LeafBlock(props: {
           <div class={props.depth === 1 ? "ml-2" : "ml-3"}>
             <Show when={iterCustomers()} fallback={
               <ItemRows
-                accountCode={props.account.code}
+                accountId={props.account.id}
                 customerId={props.fixedCustomerId}
                 items={props.items}
                 showZero={props.showZero}
@@ -133,7 +133,7 @@ function LeafBlock(props: {
                           </div>
                           <div class="ml-2">
                             <ItemRows
-                              accountCode={props.account.code}
+                              accountId={props.account.id}
                               customerId={c.id}
                               items={props.items}
                               showZero={props.showZero}
@@ -296,15 +296,23 @@ function CustomerCard(props: {
 // ── Manage Accounts tab components ────────────────────────────────────────────
 
 function AccountEditForm(props: { account: Account; onDone: () => void }) {
+  const [code, setCode] = createSignal(props.account.code);
   const [name, setName] = createSignal(props.account.name);
   const [description, setDescription] = createSignal(props.account.description ?? "");
   const [customerSpecific, setCustomerSpecific] = createSignal(props.account.customerSpecific);
+  const [error, setError] = createSignal("");
 
   async function save(e: Event) {
     e.preventDefault();
+    const c = code().trim();
     const n = name().trim();
-    if (!n) return;
-    await updateAccount(props.account.code, {
+    if (!c || !n) return;
+    if (accountCodeExists(c, props.account.id)) {
+      setError(`Code "${c}" is already used by another account.`);
+      return;
+    }
+    await updateAccount(props.account.id, {
+      code: c,
       name: n,
       description: description().trim() || undefined,
       customerSpecific: customerSpecific(),
@@ -315,10 +323,8 @@ function AccountEditForm(props: { account: Account; onDone: () => void }) {
   return (
     <form onSubmit={save}
           class="flex flex-wrap items-center gap-2 py-2 px-3 my-0.5 bg-gray-50 dark:bg-gray-700/60 rounded border border-gray-200 dark:border-gray-600">
-      <span
-        class="font-mono text-xs bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
-        {props.account.code}
-      </span>
+      <input value={code()} onInput={(e) => setCode(e.target.value)} required
+             placeholder="Code" class={`w-28 font-mono ${inputCls}`}/>
       <input value={name()} onInput={(e) => setName(e.target.value)} required
              placeholder="Name" class={`flex-1 min-w-32 ${inputCls}`}/>
       <input value={description()} onInput={(e) => setDescription(e.target.value)}
@@ -328,6 +334,9 @@ function AccountEditForm(props: { account: Account; onDone: () => void }) {
                onChange={(e) => setCustomerSpecific(e.target.checked)} class="rounded"/>
         customer-specific
       </label>
+      <Show when={error()}>
+        <span class="w-full text-xs text-red-600 dark:text-red-400">{error()}</span>
+      </Show>
       <div class="flex gap-1.5">
         <button type="submit"
                 class="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1">
@@ -342,7 +351,7 @@ function AccountEditForm(props: { account: Account; onDone: () => void }) {
   );
 }
 
-function AccountAddForm(props: { parentCode: string | null; onDone: () => void }) {
+function AccountAddForm(props: { parentId: string | null; onDone: () => void }) {
   const [code, setCode] = createSignal("");
   const [name, setName] = createSignal("");
   const [description, setDescription] = createSignal("");
@@ -351,14 +360,14 @@ function AccountAddForm(props: { parentCode: string | null; onDone: () => void }
 
   async function save(e: Event) {
     e.preventDefault();
-    const c = code().trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+    const c = code().trim();
     const n = name().trim();
     if (!c || !n) return;
     if (accountCodeExists(c)) {
       setError(`Code "${c}" already exists.`);
       return;
     }
-    await addAccount(props.parentCode, {
+    await addAccount(props.parentId, {
       code: c,
       name: n,
       description: description().trim() || undefined,
@@ -371,7 +380,7 @@ function AccountAddForm(props: { parentCode: string | null; onDone: () => void }
     <form onSubmit={save}
           class="flex flex-wrap items-center gap-2 py-2 px-3 my-0.5 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-700">
       <input value={code()} onInput={(e) => setCode(e.target.value)} required
-             placeholder="CODE" class={`w-36 font-mono uppercase ${inputCls}`}/>
+             placeholder="Code" class={`w-28 font-mono ${inputCls}`}/>
       <input value={name()} onInput={(e) => setName(e.target.value)} required
              placeholder="Name" class={`flex-1 min-w-32 ${inputCls}`}/>
       <input value={description()} onInput={(e) => setDescription(e.target.value)}
@@ -402,13 +411,15 @@ function AccountNode(props: { account: Account; depth: number }) {
   const [editing, setEditing] = createSignal(false);
   const [addingChild, setAddingChild] = createSignal(false);
   const [confirmDelete, setConfirmDelete] = createSignal(false);
-  const isPredefined = PREDEFINED_ACCOUNT_CODES.has(props.account.code);
+  const isPredefined = PREDEFINED_ACCOUNT_ID_SET.has(props.account.id);
   const indent = () => `${props.depth * 1.25}rem`;
 
   return (
     <div>
       <Show when={editing()} fallback={
-        <div class="flex items-center gap-2 py-1.5 group" style={{"padding-left": indent()}}>
+        <div
+          class="flex items-center gap-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
+          style={{"padding-left": `calc(${indent()} + 0.375rem)`, "padding-right": "0.375rem"}}>
           <span
             class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
             {props.account.code}
@@ -446,7 +457,7 @@ function AccountNode(props: { account: Account; depth: number }) {
               }>
                 <span class="inline-flex items-center gap-1.5 text-xs">
                   <span class="text-red-600 dark:text-red-400">Delete?</span>
-                  <button type="button" onClick={() => deleteAccount(props.account.code)}
+                  <button type="button" onClick={() => deleteAccount(props.account.id)}
                           class="font-semibold text-red-600 dark:text-red-400 hover:underline">Yes
                   </button>
                   <button type="button" onClick={() => setConfirmDelete(false)}
@@ -465,7 +476,7 @@ function AccountNode(props: { account: Account; depth: number }) {
 
       <Show when={addingChild()}>
         <div style={{"padding-left": `${(props.depth + 1) * 1.25}rem`}}>
-          <AccountAddForm parentCode={props.account.code} onDone={() => setAddingChild(false)}/>
+          <AccountAddForm parentId={props.account.id} onDone={() => setAddingChild(false)}/>
         </div>
       </Show>
 
@@ -491,9 +502,9 @@ function ManageAccountsTab() {
         </button>
       </div>
       <Show when={addingRoot()}>
-        <AccountAddForm parentCode={null} onDone={() => setAddingRoot(false)}/>
+        <AccountAddForm parentId={null} onDone={() => setAddingRoot(false)}/>
       </Show>
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow divide-y divide-gray-100 dark:divide-gray-700 px-4 py-1">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow px-2 py-1">
         <For each={state.accounts}>
           {(account) => <AccountNode account={account} depth={0}/>}
         </For>
@@ -515,8 +526,12 @@ export default function AccountsPage() {
     return found ? [found] : [];
   });
 
-  const customerRoot = createMemo(() => state.accounts.find(a => a.code === "CUSTOMER_INVENTORY"));
-  const nonCustomerRoots = createMemo(() => state.accounts.filter(a => a.code !== "CUSTOMER_INVENTORY"));
+  const customerRoot = createMemo(() =>
+    state.accounts.find(a => a.id === PREDEFINED_ACCOUNT_IDS.CUSTOMER_INVENTORY)
+  );
+  const nonCustomerRoots = createMemo(() =>
+    state.accounts.filter(a => a.id !== PREDEFINED_ACCOUNT_IDS.CUSTOMER_INVENTORY)
+  );
 
   const tabCls = (t: Tab) =>
     `px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
@@ -570,8 +585,7 @@ export default function AccountsPage() {
 
             <Show when={state.customers.length > 0} fallback={
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                <h2
-                  class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
+                <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
                   {customerRoot()?.name ?? "Customer Inventory"}
                 </h2>
                 <p class="text-sm text-gray-400 dark:text-gray-500">No customers yet.</p>
