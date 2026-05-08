@@ -4,36 +4,52 @@ import {createAsync} from "@solidjs/router";
 import {createEffect, createSignal} from "solid-js";
 
 // ── Account schema ─────────────────────────────────────────────────────────────
-export interface IAccount {
+export interface Account {
   readonly id: string; // stable UUID – used as reference in transaction legs
   code: string;        // display code – editable, no referential meaning
   name: string;
-  subAccounts: IAccount[];
+  subAccounts: Account[];
   description?: string;
   customerSpecific: boolean;
 }
 
-export class Account implements IAccount {
-  readonly id: string;
-  code: string = "";
-  name: string = "";
-  subAccounts: IAccount[] = [];
-  description?: string;
-  customerSpecific: boolean = false;
-
-  constructor(arg?: string | IAccount) {
-    if (typeof arg === "string") {
-      this.id = arg;
-    } else if (arg != null) {
-      this.id = arg.id;
-      this.code = arg.code;
-      this.name = arg.name;
-      this.subAccounts = arg.subAccounts;
-      this.description = arg.description;
-      this.customerSpecific = arg.customerSpecific;
-    } else {
-      this.id = newId();
+export namespace Account {
+  export function create(obj: Account): Account;
+  export function create(code: string, name: string, customerSpecific: boolean, subAccounts?: Account[], description?: string): Account;
+  export function create(
+    objOrCode: Account | string,
+    name?: string,
+    customerSpecific?: boolean,
+    subAccounts?: Account[],
+    description?: string,
+  ): Account {
+    if (typeof objOrCode === "string") {
+      return {
+        id: newId(),
+        code: objOrCode,
+        name: name!,
+        customerSpecific: customerSpecific!,
+        subAccounts: subAccounts ?? [],
+        description: description,
+      };
     }
+
+    return {
+      id: objOrCode.id,
+      code: objOrCode.code,
+      name: objOrCode.name,
+      customerSpecific: objOrCode.customerSpecific,
+      subAccounts: objOrCode.subAccounts ?? [],
+      description: objOrCode.description,
+    };
+  }
+
+  export function define(id: string, code: string, name: string, subAccounts: Account[] = [], description?: string): Account {
+    return Account.create({id, code, name, customerSpecific: false, subAccounts, description});
+  }
+
+  export function defineCustomerSpecific(id: string, code: string, name: string, subAccounts: Account[] = [], description?: string): Account {
+    return Account.create({id, code, name, customerSpecific: true, subAccounts, description});
   }
 }
 
@@ -59,6 +75,8 @@ export const PREDEFINED_ACCOUNT_IDS = {
   DEFECTIVE_RETURNED_S: "f2ebe8eb-fbba-4009-83f8-f50be1ba1308",
   // Customer sub-accounts (3xxxxx)
   DELIVERED_UNITS: "8436a4ba-87c9-45c8-bf2b-9cfceb994968",
+  // Others sub-accounts (4xxxx)
+  CORRECTIONS: "f7fe688a-ce84-4c5c-956b-faf9cbef8631",
 } as const;
 
 export const PREDEFINED_ACCOUNT_ID_SET = new Set<string>(Object.values(PREDEFINED_ACCOUNT_IDS));
@@ -66,80 +84,35 @@ export const PREDEFINED_ACCOUNT_ID_SET = new Set<string>(Object.values(PREDEFINE
 // ── Default account hierarchy ──────────────────────────────────────────────────
 const ACCT = PREDEFINED_ACCOUNT_IDS; // shorthand
 
-export const DEFAULT_ACCOUNTS: IAccount[] = [
-  {
-    id: ACCT.DISTRIBUTOR_INVENTORY, code: "10000", name: "Distributor Inventory",
-    customerSpecific: false,
-    subAccounts: [
-      {
-        id: ACCT.HELD_UNITS, code: "11000", name: "Held Units",
-        customerSpecific: true, subAccounts: [],
-      },
-      {
-        id: ACCT.RETURNED_UNITS_D, code: "12000", name: "Returned Units (Distributor)",
-        customerSpecific: false,
-        subAccounts: [
-          {
-            id: ACCT.USABLE_RETURNED_D, code: "12100", name: "Usable Returned Units (Distributor)",
-            customerSpecific: false, subAccounts: [],
-          },
-          {
-            id: ACCT.DEFECTIVE_RETURNED_D, code: "12200", name: "Defective Returned Units (Distributor)",
-            customerSpecific: false, subAccounts: [],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: ACCT.SUPPLIER_INVENTORY, code: "20000", name: "Supplier Inventory",
-    customerSpecific: false,
-    subAccounts: [
-      {
-        id: ACCT.SUPPLIER_DELIVERED, code: "21000", name: "Delivered by Supplier",
-        customerSpecific: false, subAccounts: [],
-      },
-      {
-        id: ACCT.RELAYED_TO_DISTRIBUTOR, code: "22000", name: "Relayed to Distributor",
-        customerSpecific: false, subAccounts: [],
-      },
-      {
-        id: ACCT.RETURNED_UNITS_S, code: "23000", name: "Returned Units (Supplier)",
-        customerSpecific: false,
-        subAccounts: [
-          {
-            id: ACCT.USABLE_RETURNED_S, code: "23100", name: "Usable Returned Units (Supplier)",
-            customerSpecific: false, subAccounts: [],
-          },
-          {
-            id: ACCT.DEFECTIVE_RETURNED_S, code: "23200", name: "Defective Returned Units (Supplier)",
-            customerSpecific: false, subAccounts: [],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: ACCT.CUSTOMER_INVENTORY, code: "30000", name: "Customer Inventory",
-    customerSpecific: false,
-    subAccounts: [
-      {
-        id: ACCT.DELIVERED_UNITS, code: "31000", name: "Delivered Units",
-        customerSpecific: true, subAccounts: [],
-      },
-    ],
-  },
-  {
-    id: ACCT.OTHERS, code: "40000", name: "Others",
-    customerSpecific: false, subAccounts: [],
-  },
+export const DEFAULT_ACCOUNTS: Account[] = [
+  Account.define(ACCT.DISTRIBUTOR_INVENTORY, "10000", "Distributor Inventory", [
+    Account.defineCustomerSpecific(ACCT.HELD_UNITS, "11000", "Held Units"),
+    Account.define(ACCT.RETURNED_UNITS_D, "12000", "Returned Units (Distributor)", [
+      Account.define(ACCT.USABLE_RETURNED_D, "12100", "Usable Returned Units (Distributor)"),
+      Account.define(ACCT.DEFECTIVE_RETURNED_D, "12200", "Defective Returned Units (Distributor)"),
+    ]),
+  ]),
+  Account.define(ACCT.SUPPLIER_INVENTORY, "20000", "Supplier Inventory", [
+    Account.define(ACCT.SUPPLIER_DELIVERED, "21000", "Delivered by Supplier"),
+    Account.define(ACCT.RELAYED_TO_DISTRIBUTOR, "22000", "Relayed to Distributor"),
+    Account.define(ACCT.RETURNED_UNITS_S, "23000", "Returned Units (Supplier)", [
+      Account.define(ACCT.USABLE_RETURNED_S, "23100", "Usable Returned Units (Supplier)"),
+      Account.define(ACCT.DEFECTIVE_RETURNED_S, "23200", "Defective Returned Units (Supplier)"),
+    ]),
+  ]),
+  Account.define(ACCT.CUSTOMER_INVENTORY, "30000", "Customer Inventory", [
+    Account.defineCustomerSpecific(ACCT.DELIVERED_UNITS, "31000", "Delivered Units"),
+  ]),
+  Account.define(ACCT.OTHERS, "40000", "Others", [
+    Account.define(ACCT.CORRECTIONS, "41000", "Corrections"),
+  ]),
 ];
 
 // ── Supplier negative-sign sub-accounts (static) ───────────────────────────────
-function getDescendantIds(account: IAccount): string[] {
+function getDescendantIds(account: Account): string[] {
   const result: string[] = [];
 
-  function walk(acc: IAccount) {
+  function walk(acc: Account) {
     for (const child of acc.subAccounts) {
       result.push(child.id);
       walk(child);
@@ -157,10 +130,10 @@ export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
 ));
 
 // ── Pure account tree helpers ──────────────────────────────────────────────────
-export function getLeafAccounts(accounts: IAccount[]): IAccount[] {
-  const result: IAccount[] = [];
+export function getLeafAccounts(accounts: Account[]): Account[] {
+  const result: Account[] = [];
 
-  function walk(accs: IAccount[]) {
+  function walk(accs: Account[]) {
     for (const acc of accs) {
       if (acc.subAccounts.length === 0) result.push(acc);
       else walk(acc.subAccounts);
@@ -226,7 +199,7 @@ export interface StoreState {
   customers: Customer[];
   templates: Template[];
   transactions: Transaction[];
-  accounts: IAccount[];
+  accounts: Account[];
 }
 
 // ── Default transaction templates (accountType = account UUID) ─────────────────
@@ -346,7 +319,7 @@ function suspend(t: number) {
 }
 
 // ── Reactive account helpers ───────────────────────────────────────────────────
-function findAccountById(accounts: IAccount[], id: string): IAccount | undefined {
+function findAccountById(accounts: Account[], id: string): Account | undefined {
   for (const acc of accounts) {
     if (acc.id === id) return acc;
     const found = findAccountById(acc.subAccounts, id);
@@ -354,7 +327,7 @@ function findAccountById(accounts: IAccount[], id: string): IAccount | undefined
   }
 }
 
-function findAccountByCode(accounts: IAccount[], code: string): IAccount | undefined {
+function findAccountByCode(accounts: Account[], code: string): Account | undefined {
   for (const acc of accounts) {
     if (acc.code === code) return acc;
     const found = findAccountByCode(acc.subAccounts, code);
@@ -384,7 +357,7 @@ export function loadStoredData() {
       customers: await load<Customer[]>("customers", []),
       templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
       transactions: await load<Transaction[]>("transactions", []),
-      accounts: await load<IAccount[]>("accounts", DEFAULT_ACCOUNTS),
+      accounts: await load<Account[]>("accounts", DEFAULT_ACCOUNTS),
     };
 
     await suspend(1500);
@@ -478,15 +451,15 @@ export async function deleteTransaction(id: string) {
 }
 
 // ── Account actions ───────────────────────────────────────────────────────────
-export async function addAccount(parentId: string | null, account: Omit<IAccount, "id" | "subAccounts">) {
-  const newAccount = Object.assign(new Account(), {...account, subAccounts: []});
+export async function addAccount(parentId: string | null, account: Omit<Account, "id" | "subAccounts">) {
+  const newAccount = Account.create(account.code, account.name, account.customerSpecific, [], account.description);
   setState("accounts", produce((accs) => {
     if (parentId === null) {
       accs.push(newAccount);
       return;
     }
 
-    function addToParent(list: IAccount[]): boolean {
+    function addToParent(list: Account[]): boolean {
       for (const acc of list) {
         if (acc.id === parentId) {
           acc.subAccounts.push(newAccount);
@@ -502,9 +475,9 @@ export async function addAccount(parentId: string | null, account: Omit<IAccount
   await persist(["accounts"]);
 }
 
-export async function updateAccount(id: string, fields: Partial<Omit<IAccount, "id" | "subAccounts">>) {
+export async function updateAccount(id: string, fields: Partial<Omit<Account, "id" | "subAccounts">>) {
   setState("accounts", produce((accs) => {
-    function update(list: IAccount[]): boolean {
+    function update(list: Account[]): boolean {
       for (const acc of list) {
         if (acc.id === id) {
           Object.assign(acc, fields);
@@ -522,7 +495,7 @@ export async function updateAccount(id: string, fields: Partial<Omit<IAccount, "
 
 export async function deleteAccount(id: string) {
   setState("accounts", produce((accs) => {
-    function remove(list: IAccount[]): boolean {
+    function remove(list: Account[]): boolean {
       const idx = list.findIndex(a => a.id === id);
       if (idx !== -1) {
         list.splice(idx, 1);
