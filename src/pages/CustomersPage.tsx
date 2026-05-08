@@ -1,6 +1,6 @@
-import {batch, createSignal, For, Show} from "solid-js";
+import {createSignal, For, Show} from "solid-js";
 import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} from "../store";
-import Modal from "../components/Modal";
+import Modal, {ModalController} from "../components/Modal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
 import {useNavigate} from "@solidjs/router";
 import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
@@ -13,14 +13,13 @@ interface CustomerFields {
 }
 
 function CustomerForm(props: {
-  initial?: Customer | 'add';
+  initial?: Customer;
   onSave: (fields: CustomerFields) => void;
   onCancel: () => void;
 }) {
-  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
-  const [name, setName] = createSignal(initialValues()?.name ?? '');
-  const [description, setDescription] = createSignal(initialValues()?.description ?? '');
-  const [photo, setPhoto] = createSignal(initialValues()?.photo ?? '');
+  const [name, setName] = createSignal(props.initial?.name ?? '');
+  const [description, setDescription] = createSignal(props.initial?.description ?? '');
+  const [photo, setPhoto] = createSignal(props.initial?.photo ?? '');
 
   function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
     const file = e.target.files?.[0];
@@ -83,40 +82,45 @@ function CustomerForm(props: {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
-  const [modal, setModal] = createSignal<undefined | "add" | Customer>();
+  let customerModalCtrl!: ModalController;
+  const [modal, setModal] = createSignal<"add" | Customer | undefined>();
 
-  function handleSave(fields: CustomerFields) {
-    const m = modal();
-    batch(async () => {
-      if (m === "add") addCustomer(fields).then();
-      else if (m) updateCustomer(m.id, fields).then();
-      setModal();
-    }).then();
+  const isEditing = () => modal() && modal() !== "add";
+  const modalTitle = () => modal() === "add" ? "New Customer" : "Edit Customer";
+
+  async function openModal(m: "add" | Customer) {
+    setModal(m);
+    await customerModalCtrl.prompt();
+    setModal(undefined);
   }
 
   function handleDelete(id: string) {
     if (confirm("Delete this customer? Their account history will remain in transactions.")) deleteCustomer(id);
   }
 
-  const isEditing = () => modal() && modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Customer" : "Edit Customer";
-
   return (
     <div>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Customers</h1>
-        <button onClick={() => setModal("add")}
+        <button onClick={() => openModal("add")}
                 class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
           <PlusIcon/>Add Customer
         </button>
       </div>
 
-      <Modal show={!!modal()} onClose={() => setModal()} title={modalTitle()}>
-        <CustomerForm
-          initial={isEditing() ? modal() : undefined}
-          onSave={handleSave}
-          onCancel={() => setModal()}
-        />
+      <Modal modalControllerRef={(ctrl) => (customerModalCtrl = ctrl)} title={modalTitle()}>
+        {(resolve) => (
+          <CustomerForm
+            initial={isEditing() ? (modal() as Customer) : undefined}
+            onSave={async (fields) => {
+              const m = modal();
+              if (m === "add") await addCustomer(fields);
+              else if (m) await updateCustomer(m.id, fields);
+              resolve('OK');
+            }}
+            onCancel={() => resolve('CANCELLED')}
+          />
+        )}
       </Modal>
 
       <Show when={isLoaded()} fallback={
@@ -153,7 +157,7 @@ export default function CustomersPage() {
                     class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <ArrowRightIcon/>New Transaction
                   </button>
-                  <button onClick={() => setModal(customer)}
+                  <button onClick={() => openModal(customer)}
                           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PencilIcon/>Edit
                   </button>

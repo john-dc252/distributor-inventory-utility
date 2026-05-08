@@ -1,6 +1,6 @@
-import {batch, createEffect, createSignal, For, Show} from "solid-js";
+import {createEffect, createSignal, For, Show} from "solid-js";
 import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from "../store";
-import Modal from "../components/Modal";
+import Modal, {ModalController} from "../components/Modal";
 import {ItemCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
@@ -13,15 +13,14 @@ interface ItemFields {
 }
 
 function ItemForm(props: {
-  initial?: Item | 'add';
+  initial?: Item;
   onSave: (fields: ItemFields) => void;
   onCancel: () => void;
 }) {
-  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
-  const [id, setId] = createSignal(initialValues()?.id ?? '');
-  const [name, setName] = createSignal(initialValues()?.name ?? '');
-  const [description, setDescription] = createSignal(initialValues()?.description ?? '');
-  const [photo, setPhoto] = createSignal(initialValues()?.photo ?? '');
+  const [id, setId] = createSignal(props.initial?.id ?? '');
+  const [name, setName] = createSignal(props.initial?.name ?? '');
+  const [description, setDescription] = createSignal(props.initial?.description ?? '');
+  const [photo, setPhoto] = createSignal(props.initial?.photo ?? '');
   const [idError, setIdError] = createSignal('');
 
   function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
@@ -40,7 +39,7 @@ function ItemForm(props: {
     const trimId = id().trim();
     const trimName = name().trim();
     if (!trimId || !trimName) return;
-    if (itemIdExists(trimId, initialValues()?.id)) {
+    if (itemIdExists(trimId, props.initial?.id)) {
       setIdError("This ID is already in use.");
       return;
     }
@@ -112,23 +111,21 @@ function ItemForm(props: {
 }
 
 export default function ItemsPage() {
-  const [modal, setModal] = createSignal<undefined | "add" | Item>();
+  let itemModalCtrl!: ModalController;
+  const [modal, setModal] = createSignal<"add" | Item | undefined>();
 
-  function handleSave(fields: ItemFields) {
-    const m = modal();
-    batch(async () => {
-      if (m === "add") await addItem(fields);
-      else if (m) await updateItem(m.id, fields);
-      setModal(undefined);
-    }).then();
+  const isEditing = () => modal() && modal() !== "add";
+  const modalTitle = () => modal() === "add" ? "New Item" : "Edit Item";
+
+  async function openModal(m: "add" | Item) {
+    setModal(m);
+    await itemModalCtrl.prompt();
+    setModal(undefined);
   }
 
   function handleDelete(id: string) {
     if (confirm("Delete this item? Existing transactions referencing it will still show its ID.")) deleteItem(id).then();
   }
-
-  const isEditing = () => modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Item" : "Edit Item";
 
   createEffect(() => {
     state.items?.length && console.log('Items:', state.items.map(i => `${i.id} - ${i.name}`).join(','));
@@ -138,18 +135,25 @@ export default function ItemsPage() {
     <div>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Items</h1>
-        <button onClick={() => setModal("add")}
+        <button onClick={() => openModal("add")}
                 class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
           <PlusIcon/>Add Item
         </button>
       </div>
 
-      <Modal show={!!modal()} onClose={() => setModal()} title={modalTitle()}>
-        <ItemForm
-          initial={isEditing() ? modal() : undefined}
-          onSave={handleSave}
-          onCancel={() => setModal()}
-        />
+      <Modal modalControllerRef={(ctrl) => (itemModalCtrl = ctrl)} title={modalTitle()}>
+        {(resolve) => (
+          <ItemForm
+            initial={isEditing() ? (modal() as Item) : undefined}
+            onSave={async (fields) => {
+              const m = modal();
+              if (m === "add") await addItem(fields);
+              else if (m) await updateItem(m.id, fields);
+              resolve('OK');
+            }}
+            onCancel={() => resolve('CANCELLED')}
+          />
+        )}
       </Modal>
 
       <Show when={isLoaded()} fallback={
@@ -187,7 +191,7 @@ export default function ItemsPage() {
                   </div>
                 </div>
                 <div class="flex gap-2 shrink-0">
-                  <button onClick={() => setModal(item)}
+                  <button onClick={() => openModal(item)}
                           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PencilIcon/>Edit
                   </button>

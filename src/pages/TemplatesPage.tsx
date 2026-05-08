@@ -1,4 +1,4 @@
-import {batch, createSignal, For, Show} from "solid-js";
+import {createSignal, For, Show} from "solid-js";
 import {
   ACCOUNT_LABELS,
   ACCOUNT_TYPES,
@@ -13,7 +13,7 @@ import {
   TemplateEntry,
   updateTemplate
 } from "../store";
-import Modal from "../components/Modal";
+import Modal, {ModalController} from "../components/Modal";
 import {TemplateCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
@@ -85,13 +85,12 @@ function LegSelect(props: {
 }
 
 function TemplateForm(props: {
-  initial?: Template | 'add';
+  initial?: Template;
   onSave: (fields: { name: string; entries: TemplateFormEntry[] }) => void;
   onCancel: () => void;
 }) {
-  const initialValues = () => props.initial !== 'add' ? props.initial : undefined;
-  const [name, setName] = createSignal(initialValues()?.name ?? "");
-  const [entries, setEntries] = createSignal(normalizeTemplateEntries(initialValues()?.entries));
+  const [name, setName] = createSignal(props.initial?.name ?? "");
+  const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
 
   function updateEntry(i: number, updated: TemplateFormEntry) {
     setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
@@ -241,10 +240,12 @@ function EntryPreview(props: { entry: TemplateEntry }) {
         {({src, dst}) => (
           <>
             {src
-              ? <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{ACCOUNT_LABELS[src.accountType]}</span>
+              ? <span
+                class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">{ACCOUNT_LABELS[src.accountType]}</span>
               : <span/>}
             {dst
-              ? <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{ACCOUNT_LABELS[dst.accountType]}</span>
+              ? <span
+                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">{ACCOUNT_LABELS[dst.accountType]}</span>
               : <span/>}
           </>
         )}
@@ -254,15 +255,16 @@ function EntryPreview(props: { entry: TemplateEntry }) {
 }
 
 export default function TemplatesPage() {
-  const [modal, setModal] = createSignal<undefined | "add" | Template>();
+  let templateModalCtrl!: ModalController;
+  const [modal, setModal] = createSignal<"add" | Template | undefined>();
 
-  function handleSave(fields: { name: string; entries: TemplateFormEntry[] }) {
-    const m = modal();
-    batch(async () => {
-      if (m === "add") await addTemplate(fields);
-      else if (m) await updateTemplate(m.id, fields);
-      setModal();
-    }).then();
+  const isEditing = () => modal() && modal() !== "add";
+  const modalTitle = () => modal() === "add" ? "New Template" : "Edit Template";
+
+  async function openModal(m: "add" | Template) {
+    setModal(m);
+    await templateModalCtrl.prompt();
+    setModal(undefined);
   }
 
   function handleDelete(id: string) {
@@ -275,9 +277,6 @@ export default function TemplatesPage() {
     }
   }
 
-  const isEditing = () => modal() && modal() !== "add";
-  const modalTitle = () => modal() === "add" ? "New Template" : "Edit Template";
-
   return (
     <div>
       <div class="flex items-center justify-between mb-4">
@@ -287,19 +286,29 @@ export default function TemplatesPage() {
                   class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5">
             <RefreshIcon/>Reset to defaults
           </button>
-          <button onClick={() => setModal("add")}
+          <button onClick={() => openModal("add")}
                   class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
             <PlusIcon/>New Template
           </button>
         </div>
       </div>
 
-      <Modal show={!!modal()} onClose={() => setModal()} title={modalTitle()}>
-        <TemplateForm
-          initial={isEditing() ? modal() : undefined}
-          onSave={handleSave}
-          onCancel={() => setModal()}
-        />
+      <Modal
+        modalControllerRef={(ctrl) => (templateModalCtrl = ctrl)}
+        title={modalTitle()}
+      >
+        {(resolve) => (
+          <TemplateForm
+            initial={isEditing() ? (modal() as Template) : undefined}
+            onSave={async (fields) => {
+              const m = modal();
+              if (m === "add") await addTemplate(fields);
+              else if (m) await updateTemplate(m.id, fields);
+              resolve('OK');
+            }}
+            onCancel={() => resolve('CANCELLED')}
+          />
+        )}
       </Modal>
 
       <Show when={isLoaded()} fallback={
@@ -319,7 +328,7 @@ export default function TemplatesPage() {
                     </Show>
                   </div>
                   <div class="flex gap-2 shrink-0">
-                    <button onClick={() => setModal(tpl)}
+                    <button onClick={() => openModal(tpl)}
                             class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                       <PencilIcon/>Edit
                     </button>
