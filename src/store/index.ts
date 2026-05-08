@@ -14,14 +14,28 @@ export interface Account {
 }
 
 export namespace Account {
-  export function create(obj: Account): Account;
+  /**
+   * @param code
+   * @param name
+   * @param customerSpecific
+   * @param subAccounts
+   * @param description
+   */
   export function create(code: string, name: string, customerSpecific: boolean, subAccounts?: Account[], description?: string): Account;
+  /**
+   * Create a new {@link Account}
+   * @param objOrCode
+   * @param name
+   * @param customerSpecific
+   * @param subAccounts
+   * @param description
+   */
   export function create(
     objOrCode: Account | string,
-    name?: string,
-    customerSpecific?: boolean,
-    subAccounts?: Account[],
-    description?: string,
+    name: string,
+    customerSpecific: boolean = false,
+    subAccounts: Account[] = [],
+    description: string = '',
   ): Account {
     if (typeof objOrCode === "string") {
       return {
@@ -44,12 +58,18 @@ export namespace Account {
     };
   }
 
+  /**
+   * Create an {@link Account} with a pre-defined id
+   */
   export function define(id: string, code: string, name: string, subAccounts: Account[] = [], description?: string): Account {
-    return Account.create({id, code, name, customerSpecific: false, subAccounts, description});
+    return {id, code, name, customerSpecific: false, subAccounts, description};
   }
 
+  /**
+   * Create an {@link Account} with a pre-defined id
+   */
   export function defineCustomerSpecific(id: string, code: string, name: string, subAccounts: Account[] = [], description?: string): Account {
-    return Account.create({id, code, name, customerSpecific: true, subAccounts, description});
+    return {id, code, name, customerSpecific: true, subAccounts, description};
   }
 }
 
@@ -108,40 +128,22 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   ]),
 ];
 
+const SUPPLIER_RETURNED_ACCT_IDS = new Set<string>([ACCT.USABLE_RETURNED_S, ACCT.DEFECTIVE_RETURNED_S]);
+
+const SUPPLIER_INVENTORY_ACCOUNT = DEFAULT_ACCOUNTS.find(a => a.id === ACCT.SUPPLIER_INVENTORY)!;
 // ── Supplier negative-sign sub-accounts (static) ───────────────────────────────
-function getDescendantIds(account: Account): string[] {
-  const result: string[] = [];
-
-  function walk(acc: Account) {
-    for (const child of acc.subAccounts) {
-      result.push(child.id);
-      walk(child);
-    }
-  }
-
-  walk(account);
-  return result;
-}
-
-const _SUPPLIER_RETURNED_IDS = new Set<string>([ACCT.USABLE_RETURNED_S, ACCT.DEFECTIVE_RETURNED_S]);
-const _supplierDefault = DEFAULT_ACCOUNTS.find(a => a.id === ACCT.SUPPLIER_INVENTORY)!;
 export const SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS = Object.freeze(new Set(
-  getDescendantIds(_supplierDefault).filter(id => !_SUPPLIER_RETURNED_IDS.has(id))
+  traverseAccountTreeUnordered(SUPPLIER_INVENTORY_ACCOUNT)
+    .map(acct => acct.id)
+    .filter(id => !SUPPLIER_RETURNED_ACCT_IDS.has(id))
 ));
 
 // ── Pure account tree helpers ──────────────────────────────────────────────────
 export function getLeafAccounts(accounts: Account[]): Account[] {
-  const result: Account[] = [];
-
-  function walk(accs: Account[]) {
-    for (const acc of accs) {
-      if (acc.subAccounts.length === 0) result.push(acc);
-      else walk(acc.subAccounts);
-    }
-  }
-
-  walk(accounts);
-  return result;
+  return accounts.values()
+    .flatMap(traverseAccountTreeUnordered)
+    .filter(acc => acc.subAccounts.length === 0)
+    .toArray();
 }
 
 // ── Entity interfaces ──────────────────────────────────────────────────────────
@@ -320,18 +322,26 @@ function suspend(t: number) {
 
 // ── Reactive account helpers ───────────────────────────────────────────────────
 function findAccountById(accounts: Account[], id: string): Account | undefined {
-  for (const acc of accounts) {
-    if (acc.id === id) return acc;
-    const found = findAccountById(acc.subAccounts, id);
-    if (found) return found;
-  }
+  return accounts.values()
+    .flatMap(traverseAccountTreeUnordered)
+    .find(acc => acc.id === id);
 }
 
 function findAccountByCode(accounts: Account[], code: string): Account | undefined {
-  for (const acc of accounts) {
-    if (acc.code === code) return acc;
-    const found = findAccountByCode(acc.subAccounts, code);
-    if (found) return found;
+  return accounts.values()
+    .flatMap(traverseAccountTreeUnordered)
+    .find(acc => acc.code === code);
+}
+
+function* traverseAccountTreeUnordered(account: Account) {
+  const stack = [account];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    yield current;
+    const children = current.subAccounts ?? [];
+    for (const child of children) {
+      stack.push(child);
+    }
   }
 }
 
@@ -458,56 +468,33 @@ export async function addAccount(parentId: string | null, account: Omit<Account,
       accs.push(newAccount);
       return;
     }
-
-    function addToParent(list: Account[]): boolean {
-      for (const acc of list) {
-        if (acc.id === parentId) {
-          acc.subAccounts.push(newAccount);
-          return true;
-        }
-        if (addToParent(acc.subAccounts)) return true;
-      }
-      return false;
-    }
-
-    addToParent(accs);
+    const parent = accs.values().flatMap(traverseAccountTreeUnordered).find(a => a.id === parentId);
+    parent?.subAccounts.push(newAccount);
   }));
   await persist(["accounts"]);
 }
 
 export async function updateAccount(id: string, fields: Partial<Omit<Account, "id" | "subAccounts">>) {
   setState("accounts", produce((accs) => {
-    function update(list: Account[]): boolean {
-      for (const acc of list) {
-        if (acc.id === id) {
-          Object.assign(acc, fields);
-          return true;
-        }
-        if (update(acc.subAccounts)) return true;
-      }
-      return false;
-    }
-
-    update(accs);
+    const acc = accs.values().flatMap(traverseAccountTreeUnordered).find(a => a.id === id);
+    if (acc) Object.assign(acc, fields);
   }));
   await persist(["accounts"]);
 }
 
 export async function deleteAccount(id: string) {
   setState("accounts", produce((accs) => {
-    function remove(list: Account[]): boolean {
-      const idx = list.findIndex(a => a.id === id);
-      if (idx !== -1) {
-        list.splice(idx, 1);
-        return true;
-      }
-      for (const acc of list) {
-        if (remove(acc.subAccounts)) return true;
-      }
-      return false;
+    const rootIdx = accs.findIndex(a => a.id === id);
+    if (rootIdx !== -1) {
+      accs.splice(rootIdx, 1);
+      return;
     }
-
-    remove(accs);
+    const parent = accs.values()
+      .flatMap(traverseAccountTreeUnordered)
+      .find(a => a.subAccounts.some(c => c.id === id));
+    if (parent) {
+      parent.subAccounts.splice(parent.subAccounts.findIndex(c => c.id === id), 1);
+    }
   }));
   await persist(["accounts"]);
 }
