@@ -18,9 +18,10 @@ import {
 import Modal from "../components/Modal";
 import {CustomerAvatar} from "../components/CustomerAvatar";
 import {useSearchParams} from "@solidjs/router";
-import {inputCls, rowLabelCls, secondaryBtn, selFull} from "../components/styles";
+import {inputCls, secondaryBtn, selFull} from "../components/styles";
 import {ItemCombobox} from "../components/ItemCombobox";
 import {CustomerCombobox} from "../components/CustomerCombobox";
+import {AccountCombobox} from "../components/AccountCombobox";
 import {EntryBlock} from "../components/EntryBlock";
 
 // ── Modal state ───────────────────────────────────────────────────────────────
@@ -45,9 +46,6 @@ interface FormEntry {
   sources: FormLeg[];
   destinations: FormLeg[];
 }
-
-// Keys that are true leaf account types (excludes root types like DISTRIBUTOR_INVENTORY)
-const leafAccountTypeKeys = new Set<string>(Object.values(ACCOUNT_TYPES));
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
@@ -115,6 +113,10 @@ function validateEntries(entries: FormEntry[], skipCustomerValidation = false): 
     if (fromErr) return fromErr;
     const toErr = validateLegs(entry.destinations, n, "To", skipCustomerValidation);
     if (toErr) return toErr;
+    const srcTotal = entry.sources.reduce((s, l) => s + Number(l.qty), 0);
+    const dstTotal = entry.destinations.reduce((s, l) => s + Number(l.qty), 0);
+    if (srcTotal !== dstTotal)
+      return `Entry ${n}: source total (${srcTotal}) must equal destination total (${dstTotal}).`;
   }
   return null;
 }
@@ -148,41 +150,28 @@ function LegRow(props: {
     ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
     : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
 
-  const accountOptions = Object.entries(ACCOUNT_LABELS).filter(([key]) => {
-    if (!leafAccountTypeKeys.has(key)) return false;
-    if (props.mode === "non-customer" && PER_CUSTOMER_ACCOUNTS.has(key as AccountType)) return false;
-    return true;
-  });
-
   return (
-    <div class={`flex gap-2 items-end flex-wrap rounded p-2 border ${sideColor}`}>
-      <div class="flex-1 min-w-36">
-        <label class={rowLabelCls}>Account</label>
-        <select value={props.leg.accountType}
-                onChange={(e) => setField("accountType", e.target.value)} class={selFull}>
-          <For each={accountOptions}>
-            {([key, label]) => <option value={key}>{label}</option>}
-          </For>
-        </select>
+    <div class={`flex gap-2 items-center flex-wrap rounded px-2 py-1.5 border ${sideColor}`}>
+      <div class="flex-1 min-w-40">
+        <AccountCombobox value={props.leg.accountType}
+                         onSelect={(type) => setField("accountType", type)}
+                         excludePerCustomer={props.mode === "non-customer"}/>
       </div>
       <Show when={needsCustomer() && props.mode !== "customer"}>
         <div class="flex-1 min-w-44">
-          <label class={rowLabelCls}>Customer *</label>
           <CustomerCombobox value={props.leg.customerId}
                             onSelect={(id) => setField("customerId", id)}/>
         </div>
       </Show>
       <div class="w-24 shrink-0">
-        <label class={rowLabelCls}>Qty *</label>
         <input type="number" min="0" step="1" value={props.leg.qty}
                onInput={(e) => setField("qty", e.target.value)}
                class={selFull} placeholder="0"/>
       </div>
-      <Show when={props.canRemove}>
-        <button type="button" onClick={props.onRemove}
-                class="text-gray-400 hover:text-red-500 pb-1.5"><XIcon class="w-3 h-3"/>
-        </button>
-      </Show>
+      <button type="button" onClick={props.onRemove} disabled={!props.canRemove}
+              class={`p-1 ${props.canRemove ? 'text-gray-400 hover:text-red-500' : 'text-gray-300 dark:text-gray-500 cursor-not-allowed'}`}>
+        <XIcon class="w-4 h-4"/>
+      </button>
     </div>
   );
 }
@@ -214,8 +203,17 @@ function EntryCard(props: {
     props.onUpdate({...props.entry, [key]: props.entry[key].filter((_, idx) => idx !== i)});
   }
 
+  const sourceTotal = () => props.entry.sources.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  const destTotal = () => props.entry.destinations.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  const hasMismatch = () => sourceTotal() > 0 && destTotal() > 0 && sourceTotal() !== destTotal();
+  const totalCls = () => {
+    if (sourceTotal() > 0 && destTotal() > 0)
+      return hasMismatch() ? "text-red-500 dark:text-red-400" : "text-green-600 dark:text-green-400";
+    return "text-gray-400 dark:text-gray-500";
+  };
+
   return (
-    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/40 space-y-3">
+    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/40 space-y-2">
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div class="flex items-center gap-2 flex-1 min-w-48">
           <label class="text-xs font-semibold text-gray-600 dark:text-gray-300 shrink-0">Item *</label>
@@ -232,13 +230,18 @@ function EntryCard(props: {
         </Show>
       </div>
 
-      <div class="space-y-2">
+      <div class="space-y-1">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
           <button type="button" onClick={() => addLeg("source")}
                   class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
             <PlusIcon class="w-3 h-3"/>add
           </button>
+        </div>
+        <div class="flex gap-2 px-2">
+          <span class="flex-1 min-w-40 text-xs text-gray-400 dark:text-gray-500">Account</span>
+          <span class="w-24 shrink-0 text-xs text-gray-400 dark:text-gray-500">Qty</span>
+          <span class="w-6 shrink-0"/>
         </div>
         <For each={props.entry.sources}>
           {(leg, i) => (
@@ -248,15 +251,27 @@ function EntryCard(props: {
                     canRemove={props.entry.sources.length > 1}/>
           )}
         </For>
+        <Show when={sourceTotal() > 0}>
+          <div class="flex gap-2 px-2">
+            <span class="flex-1 min-w-40"/>
+            <span class={`w-24 shrink-0 text-xs font-mono ${totalCls()}`}>total: {sourceTotal()}</span>
+            <span class="w-6 shrink-0"/>
+          </div>
+        </Show>
       </div>
 
-      <div class="space-y-2">
+      <div class="space-y-1">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
           <button type="button" onClick={() => addLeg("destination")}
                   class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
             <PlusIcon class="w-3 h-3"/>add
           </button>
+        </div>
+        <div class="flex gap-2 px-2">
+          <span class="flex-1 min-w-40 text-xs text-gray-400 dark:text-gray-500">Account</span>
+          <span class="w-24 shrink-0 text-xs text-gray-400 dark:text-gray-500">Qty</span>
+          <span class="w-6 shrink-0"/>
         </div>
         <For each={props.entry.destinations}>
           {(leg, i) => (
@@ -266,6 +281,13 @@ function EntryCard(props: {
                     canRemove={props.entry.destinations.length > 1}/>
           )}
         </For>
+        <Show when={destTotal() > 0}>
+          <div class="flex gap-2 px-2">
+            <span class="flex-1 min-w-40"/>
+            <span class={`w-24 shrink-0 text-xs font-mono ${totalCls()}`}>total: {destTotal()}</span>
+            <span class="w-6 shrink-0"/>
+          </div>
+        </Show>
       </div>
     </div>
   );
@@ -337,7 +359,7 @@ function TransactionForm(props: {
     loadTemplate(id);
   }
 
-  function submit(e: Event) {
+  async function submit(e: Event) {
     e.preventDefault();
     setError("");
     if (props.mode === "customer" && !txCustomerId()) {
@@ -349,7 +371,7 @@ function TransactionForm(props: {
       setError(err);
       return;
     }
-    addTransaction({
+    await addTransaction({
       templateId: templateId() || null,
       templateName: selectedTemplate()?.name ?? "Manual",
       date: date(),
@@ -623,6 +645,7 @@ export default function TransactionsPage() {
         show={customerPickState() !== undefined || customerFormState() !== undefined}
         onClose={close}
         title="New Customer Transaction"
+        size="lg"
       >
         <Show when={customerPickState()}>
           {(ms) => (
@@ -656,6 +679,7 @@ export default function TransactionsPage() {
         show={nonCustomerPickState() !== undefined || nonCustomerFormState() !== undefined}
         onClose={close}
         title="New Non-Customer Transaction"
+        size="lg"
       >
         <Show when={nonCustomerPickState()}>
           <TemplatePicker

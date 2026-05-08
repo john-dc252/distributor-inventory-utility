@@ -7,6 +7,7 @@ export default function Modal(props: {
   onClose: () => void;
   title: string;
   children: JSX.Element;
+  size?: "md" | "lg";
 }) {
   createEffect(() => {
     if (props.show) {
@@ -20,7 +21,7 @@ export default function Modal(props: {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50 dark:bg-black/70" onClick={props.onClose}/>
         <div
-          class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+          class={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-h-[90vh] flex flex-col ${props.size === "lg" ? "max-w-2xl" : "max-w-lg"}`}>
           <div
             class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
             <h2 class="font-semibold text-gray-800 dark:text-gray-100">{props.title}</h2>

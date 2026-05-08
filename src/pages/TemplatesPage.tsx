@@ -16,7 +16,8 @@ import {
 import Modal from "../components/Modal";
 import {TemplateCardSkeleton} from "../components/Skeleton";
 import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon} from "../components/Icons";
-import {inputClsFull as inputCls, labelCls, sel} from "../components/styles";
+import {inputClsFull as inputCls, labelCls} from "../components/styles";
+import {AccountCombobox} from "../components/AccountCombobox";
 
 interface TemplateFormLeg {
   accountType: AccountType;
@@ -68,20 +69,17 @@ function LegSelect(props: {
     ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
     : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
   return (
-    <div class={`flex gap-2 items-center rounded p-2 border ${color()}`}>
-      <select
-        value={props.leg.accountType}
-        onChange={(e) => props.onUpdate({accountType: e.target.value as AccountType})}
-        class={`flex-1 ${sel}`}
-      >
-        <For each={Object.entries(ACCOUNT_LABELS)}>
-          {([key, label]) => <option value={key}>{label}</option>}
-        </For>
-      </select>
-      <Show when={props.canRemove}>
-        <button type="button" onClick={props.onRemove} class="text-gray-400 hover:text-red-500"><XIcon class="w-3 h-3"/>
-        </button>
-      </Show>
+    <div class={`flex gap-2 items-center rounded px-2 py-1.5 border ${color()}`}>
+      <div class="flex-1 min-w-0">
+        <AccountCombobox
+          value={props.leg.accountType}
+          onSelect={(type) => props.onUpdate({accountType: type})}
+        />
+      </div>
+      <button type="button" onClick={props.onRemove} disabled={!props.canRemove}
+              class={`p-1 ${props.canRemove ? 'text-gray-400 hover:text-red-500' : 'text-gray-300 dark:text-gray-500 cursor-not-allowed'}`}>
+        <XIcon class="w-4 h-4"/>
+      </button>
     </div>
   );
 }
@@ -145,7 +143,7 @@ function TemplateForm(props: {
         <For each={entries()}>
           {(entry, ei) => (
             <div
-              class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/40 space-y-2">
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-700/40 space-y-1.5">
               <div class="flex justify-between items-center">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Entry {ei() + 1}</span>
                 <Show when={entries().length > 1}>
@@ -157,13 +155,17 @@ function TemplateForm(props: {
               </div>
 
               {/* FROM */}
-              <div class="space-y-1.5">
+              <div class="space-y-1">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
                   <button type="button" onClick={() => addLeg(ei(), "source")}
                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PlusIcon class="w-3 h-3"/>add
                   </button>
+                </div>
+                <div class="flex gap-2 px-2">
+                  <span class="flex-1 text-xs text-gray-400 dark:text-gray-500">Account</span>
+                  <span class="w-6 shrink-0"/>
                 </div>
                 <For each={entry.sources}>
                   {(leg, li) => (
@@ -178,7 +180,7 @@ function TemplateForm(props: {
               </div>
 
               {/* TO */}
-              <div class="space-y-1.5">
+              <div class="space-y-1">
                 <div class="flex items-center justify-between">
                   <span
                     class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
@@ -186,6 +188,10 @@ function TemplateForm(props: {
                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PlusIcon class="w-3 h-3"/>add
                   </button>
+                </div>
+                <div class="flex gap-2 px-2">
+                  <span class="flex-1 text-xs text-gray-400 dark:text-gray-500">Account</span>
+                  <span class="w-6 shrink-0"/>
                 </div>
                 <For each={entry.destinations}>
                   {(leg, li) => (
