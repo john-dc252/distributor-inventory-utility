@@ -474,14 +474,24 @@ function TemplatePicker(props: {
   onSelect: (templateId: string) => void;
   onCancel: () => void;
 }) {
+  const [query, setQuery] = createSignal("");
+  const filtered = createMemo(() => {
+    const q = query().toLowerCase();
+    return q ? props.templates.filter(t => t.name.toLowerCase().includes(q)) : props.templates;
+  });
+
   return (
     <div class="space-y-4">
       <p class="text-sm text-gray-600 dark:text-gray-300">Choose a template or start manually.</p>
-      <div class="space-y-2 max-h-72 overflow-auto pr-1">
-        <button type="button" onClick={() => props.onSelect("")} class={templateChoiceBtn}>
-          — Manual / no template —
-        </button>
-        <For each={props.templates}>
+      <input type="text" value={query()} onInput={(e) => setQuery(e.target.value)}
+             placeholder="Search templates..." class={`w-full ${inputCls}`}/>
+      <div class="space-y-2 max-h-64 overflow-auto pr-1">
+        <Show when={!query()}>
+          <button type="button" onClick={() => props.onSelect("")} class={templateChoiceBtn}>
+            — Manual / no template —
+          </button>
+        </Show>
+        <For each={filtered()}>
           {(t) => (
             <button type="button" onClick={() => props.onSelect(t.id)} class={templateChoiceBtn}>
               <p class="font-medium mb-1">{t.name}</p>
@@ -525,6 +535,9 @@ function TemplatePicker(props: {
             </button>
           )}
         </For>
+        <Show when={query() && filtered().length === 0}>
+          <p class="text-sm text-gray-400 dark:text-gray-500 py-3 text-center">No templates match your search.</p>
+        </Show>
       </div>
       <div class="flex justify-end">
         <button type="button" onClick={props.onCancel} class={`${secondaryBtn} inline-flex items-center gap-1.5`}>
@@ -722,19 +735,12 @@ export default function TransactionsPage() {
         <input type="text" value={search()} onInput={(e) => setSearch(e.target.value)}
                placeholder="Search by template, note, date..."
                class={`flex-1 min-w-48 ${inputCls}`}/>
-        <select value={filterItem()} onChange={(e) => setFilterItem(e.target.value)} class={inputCls}>
-          <option value="">All items</option>
-          <For each={state.items}>
-            {(it) => <option value={it.id}>{it.name} ({it.id})</option>}
-          </For>
-        </select>
-        <select value={filterCustomer()} onChange={(e) => setFilterCustomer(e.target.value)}
-                class={inputCls}>
-          <option value="">All customers</option>
-          <For each={state.customers}>
-            {(c) => <option value={c.id}>{c.name}</option>}
-          </For>
-        </select>
+        <div class="min-w-44">
+          <ItemCombobox value={filterItem()} onSelect={setFilterItem} allowAll/>
+        </div>
+        <div class="min-w-44">
+          <CustomerCombobox value={filterCustomer()} onSelect={setFilterCustomer} allowAll/>
+        </div>
       </div>
 
       {/* ── History ── */}

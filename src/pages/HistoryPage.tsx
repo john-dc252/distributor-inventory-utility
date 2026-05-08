@@ -3,6 +3,8 @@ import {deleteTransaction, state} from "../store";
 import {inputCls} from "../components/styles";
 import {EntryBlock} from "../components/EntryBlock";
 import {createConfirmModal} from "../components/ConfirmModal";
+import {ItemCombobox} from "../components/ItemCombobox";
+import {CustomerCombobox} from "../components/CustomerCombobox";
 
 export default function HistoryPage() {
   const [search, setSearch] = createSignal("");
@@ -47,18 +49,12 @@ export default function HistoryPage() {
           placeholder="Search by template, note, date..."
           class={`flex-1 min-w-48 ${inputCls}`}
         />
-        <select value={filterItem()} onChange={(e) => setFilterItem(e.target.value)} class={inputCls}>
-          <option value="">All items</option>
-          <For each={state.items}>
-            {(it) => <option value={it.id}>{it.name} ({it.id})</option>}
-          </For>
-        </select>
-        <select value={filterCustomer()} onChange={(e) => setFilterCustomer(e.target.value)} class={inputCls}>
-          <option value="">All customers</option>
-          <For each={state.customers}>
-            {(c) => <option value={c.id}>{c.name}</option>}
-          </For>
-        </select>
+        <div class="min-w-44">
+          <ItemCombobox value={filterItem()} onSelect={setFilterItem} allowAll/>
+        </div>
+        <div class="min-w-44">
+          <CustomerCombobox value={filterCustomer()} onSelect={setFilterCustomer} allowAll/>
+        </div>
       </div>
 
       <Show
