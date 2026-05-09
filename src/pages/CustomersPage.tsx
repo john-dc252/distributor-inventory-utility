@@ -3,6 +3,7 @@ import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} 
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
+import {CustomersEmptyState} from "../components/EmptyState";
 import {useNavigate} from "@solidjs/router";
 import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
@@ -136,7 +137,7 @@ export default function CustomersPage() {
       }>
         <div class="space-y-3">
           <For each={state.customers}
-               fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No customers yet. Add one above.</p>}>
+               fallback={<CustomersEmptyState/>}>
             {(customer) => (
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
                 <Show

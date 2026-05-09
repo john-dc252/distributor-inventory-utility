@@ -24,6 +24,7 @@ import {ItemCombobox} from "../components/ItemCombobox";
 import {CustomerCombobox} from "../components/CustomerCombobox";
 import {AccountCombobox} from "../components/AccountCombobox";
 import {EntryBlock} from "../components/EntryBlock";
+import {TransactionsEmptyState} from "../components/EmptyState";
 
 // ── Modal state ───────────────────────────────────────────────────────────────
 type TxModalState =
@@ -773,7 +774,7 @@ export default function TransactionsPage() {
         </div>
       }>
         <Show when={filtered().length > 0}
-              fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No transactions yet.</p>}>
+              fallback={<TransactionsEmptyState/>}>
           <div class="space-y-3">
             <For each={filtered()}>
               {(tx) => (

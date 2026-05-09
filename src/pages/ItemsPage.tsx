@@ -3,6 +3,7 @@ import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} fr
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
 import {ItemCardSkeleton} from "../components/Skeleton";
+import {ItemsEmptyState} from "../components/EmptyState";
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
 
@@ -169,7 +170,7 @@ export default function ItemsPage() {
       }>
         <div class="space-y-3">
           <For each={state.items}
-               fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No items yet. Add one above.</p>}>
+               fallback={<ItemsEmptyState/>}>
             {(item) => (
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
                 <Show
