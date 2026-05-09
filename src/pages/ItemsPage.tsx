@@ -1,10 +1,10 @@
-import {createEffect, createSignal, For, Show} from "solid-js";
+import {createEffect, createMemo, createSignal, For, Show} from "solid-js";
 import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from "../store";
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
 import {ItemCardSkeleton} from "../components/Skeleton";
 import {ItemsEmptyState} from "../components/EmptyState";
-import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
+import {CheckIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
 
 interface ItemFields {
@@ -135,6 +135,15 @@ export default function ItemsPage() {
 
   const confirmModal = createConfirmModal();
 
+  const [query, setQuery] = createSignal('');
+  const filteredItems = createMemo(() => {
+    const q = query().toLowerCase().trim();
+    if (!q) return state.items ?? [];
+    return (state.items ?? []).filter(i =>
+      i.id.toLowerCase().includes(q) || i.name.toLowerCase().includes(q)
+    );
+  });
+
   async function openModal(m: "add" | Item) {
     setModal(m);
     await itemModal.prompt();
@@ -168,9 +177,20 @@ export default function ItemsPage() {
           <For each={[0, 1, 2]}>{() => <ItemCardSkeleton/>}</For>
         </div>
       }>
-        <div class="space-y-3">
-          <For each={state.items}
-               fallback={<ItemsEmptyState/>}>
+        <div class="space-y-4">
+          <div class="relative">
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+            <input
+              type="search"
+              value={query()}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+              placeholder="Search by name or ID…"
+              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div class="space-y-3">
+          <For each={filteredItems()}
+               fallback={query() ? <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No results for "{query()}".</p> : <ItemsEmptyState/>}>
             {(item) => (
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
                 <Show
@@ -210,6 +230,7 @@ export default function ItemsPage() {
               </div>
             )}
           </For>
+          </div>
         </div>
       </Show>
     </div>

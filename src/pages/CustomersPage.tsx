@@ -1,11 +1,11 @@
-import {createSignal, For, Show} from "solid-js";
+import {createMemo, createSignal, For, Show} from "solid-js";
 import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} from "../store";
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
 import {CustomersEmptyState} from "../components/EmptyState";
 import {useNavigate} from "@solidjs/router";
-import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
+import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
 
 interface CustomerFields {
@@ -106,6 +106,13 @@ export default function CustomersPage() {
 
   const confirmModal = createConfirmModal();
 
+  const [query, setQuery] = createSignal('');
+  const filteredCustomers = createMemo(() => {
+    const q = query().toLowerCase().trim();
+    if (!q) return state.customers ?? [];
+    return (state.customers ?? []).filter(c => c.name.toLowerCase().includes(q));
+  });
+
   async function openModal(m: "add" | Customer) {
     setModal(m);
     await customerModal.prompt();
@@ -135,9 +142,20 @@ export default function CustomersPage() {
           <For each={[0, 1, 2]}>{() => <CustomerCardSkeleton/>}</For>
         </div>
       }>
-        <div class="space-y-3">
-          <For each={state.customers}
-               fallback={<CustomersEmptyState/>}>
+        <div class="space-y-4">
+          <div class="relative">
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+            <input
+              type="search"
+              value={query()}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+              placeholder="Search by name…"
+              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div class="space-y-3">
+          <For each={filteredCustomers()}
+               fallback={query() ? <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No results for "{query()}".</p> : <CustomersEmptyState/>}>
             {(customer) => (
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center gap-4">
                 <Show
@@ -176,6 +194,7 @@ export default function CustomersPage() {
               </div>
             )}
           </For>
+          </div>
         </div>
       </Show>
     </div>

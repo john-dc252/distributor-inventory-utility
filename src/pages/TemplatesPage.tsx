@@ -1,4 +1,4 @@
-import {createSignal, For, Show} from "solid-js";
+import {createMemo, createSignal, For, Show} from "solid-js";
 import {
   AccountId,
   addTemplate,
@@ -16,7 +16,7 @@ import {
 import {createModal} from "../components/Modal";
 import {createConfirmModal} from "../components/ConfirmModal";
 import {TemplateCardSkeleton} from "../components/Skeleton";
-import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, TrashIcon, XIcon} from "../components/Icons";
+import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
 import {AccountCombobox} from "../components/AccountCombobox";
 
@@ -278,6 +278,13 @@ export default function TemplatesPage() {
 
   const confirmModal = createConfirmModal();
 
+  const [query, setQuery] = createSignal('');
+  const filteredTemplates = createMemo(() => {
+    const q = query().toLowerCase().trim();
+    if (!q) return state.templates ?? [];
+    return (state.templates ?? []).filter(t => t.name.toLowerCase().includes(q));
+  });
+
   async function openModal(m: "add" | Template) {
     setModal(m);
     await templateModal.prompt();
@@ -318,8 +325,19 @@ export default function TemplatesPage() {
           <For each={[0, 1, 2]}>{() => <TemplateCardSkeleton/>}</For>
         </div>
       }>
-        <div class="space-y-3">
-          <For each={state.templates} fallback={<p class="text-sm text-gray-400 dark:text-gray-500">No templates.</p>}>
+        <div class="space-y-4">
+          <div class="relative">
+            <SearchIcon class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+            <input
+              type="search"
+              value={query()}
+              onInput={(e) => setQuery(e.currentTarget.value)}
+              placeholder="Search by name…"
+              class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div class="space-y-3">
+          <For each={filteredTemplates()} fallback={query() ? <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No results for "{query()}".</p> : <p class="text-sm text-gray-400 dark:text-gray-500">No templates.</p>}>
             {(tpl) => (
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div class="flex items-start justify-between gap-2 mb-2">
@@ -355,6 +373,7 @@ export default function TemplatesPage() {
               </div>
             )}
           </For>
+          </div>
         </div>
       </Show>
     </div>
