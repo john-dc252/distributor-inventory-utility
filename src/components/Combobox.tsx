@@ -20,7 +20,14 @@ export function Combobox<T extends { id: string }>(props: {
   let triggerRef!: HTMLButtonElement;
 
   onMount(() => {
-    function onResize() { setOpen(false); setQuery(""); }
+    let lastWidth = window.innerWidth;
+    function onResize() {
+      const w = window.innerWidth;
+      if (w === lastWidth) return; // height-only change = virtual keyboard, ignore
+      lastWidth = w;
+      setOpen(false);
+      setQuery("");
+    }
     window.addEventListener("resize", onResize);
     onCleanup(() => window.removeEventListener("resize", onResize));
   });
