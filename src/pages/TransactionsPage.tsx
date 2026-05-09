@@ -756,14 +756,16 @@ export default function TransactionsPage() {
         <input type="text" value={search()} onInput={(e) => setSearch(e.target.value)}
                placeholder="Search by template, note, date..."
                class={`flex-1 min-w-48 ${inputCls}`}/>
-        <div class="min-w-44">
+      </div>
+      <div class="flex gap-3 mb-4 flex-wrap">
+        <div class="min-w-44 flex-1">
+          <AccountCombobox value={filterAccount()} onSelect={setFilterAccount} allowAll/>
+        </div>
+        <div class="min-w-44 flex-1">
           <ItemCombobox value={filterItem()} onSelect={setFilterItem} allowAll/>
         </div>
-        <div class="min-w-44">
+        <div class="min-w-44 flex-1">
           <CustomerCombobox value={filterCustomer()} onSelect={setFilterCustomer} allowAll/>
-        </div>
-        <div class="min-w-44">
-          <AccountCombobox value={filterAccount()} onSelect={setFilterAccount} allowAll/>
         </div>
       </div>
 
