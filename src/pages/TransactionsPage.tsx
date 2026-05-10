@@ -26,14 +26,6 @@ import {AccountCombobox} from "../components/AccountCombobox";
 import {EntryBlock} from "../components/EntryBlock";
 import {TransactionsEmptyState} from "../components/EmptyState";
 
-// ── Modal state ───────────────────────────────────────────────────────────────
-type TxModalState =
-  | null
-  | { kind: "customer-pick-template"; initialCustomerId: string }
-  | { kind: "customer-form"; templateId: string | undefined; initialCustomerId: string }
-  | { kind: "non-customer-pick-template" }
-  | { kind: "non-customer-form"; templateId: string | undefined };
-
 const templateChoiceBtn = `w-full text-left ${inputCls} hover:bg-gray-50 dark:hover:bg-gray-600 transition`;
 
 // ── Form types ────────────────────────────────────────────────────────────────
@@ -321,12 +313,12 @@ function EntryCard(props: {
 function TransactionForm(props: {
   mode: "customer" | "non-customer";
   initialTemplateId?: string;
+  initialDescription: string;
   initialCustomerId?: string;
-  templates: Template[];
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const [templateId, setTemplateId] = createSignal(props.initialTemplateId ?? "");
+  const [description, setDescription] = createSignal(props.initialDescription);
   const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? "");
   const [entries, setEntries] = createStore<FormEntry[]>(
     props.initialTemplateId
@@ -337,17 +329,14 @@ function TransactionForm(props: {
       : [newEntry()]
   );
   const [note, setNote] = createSignal("");
-  const confirmModal = createConfirmModal();
   const [date, setDate] = createSignal(new Date().toISOString().slice(0, 10));
   const [error, setError] = createSignal("");
-
-  const selectedTemplate = createMemo(() => props.templates.find(t => t.id === templateId()));
 
   const txData = createMemo(() => {
     const txCustomer = txCustomerId();
     const data: Omit<Transaction, "id" | "createdAt"> = {
-      templateId: templateId() || null,
-      templateName: selectedTemplate()?.name ?? "Manual",
+      templateId: props.initialTemplateId ?? null,
+      description: description(),
       date: date(),
       note: note().trim(),
       entries: entries.map(en => ({
@@ -375,8 +364,8 @@ function TransactionForm(props: {
       <div class="space-y-5">
         <div class="space-y-1.5 text-sm">
           <div class="flex gap-2">
-            <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Template</span>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().templateName}</span>
+            <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Description</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().description || "—"}</span>
           </div>
           <div class="flex gap-2">
             <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Date</span>
@@ -455,34 +444,6 @@ function TransactionForm(props: {
     ),
   });
 
-  function loadTemplate(id: string) {
-    setTemplateId(id);
-    setError("");
-    const tpl = props.templates.find(t => t.id === id);
-    setEntries(reconcile(
-      tpl
-        ? normalizeTemplateEntries(tpl.entries, props.mode === "customer" ? txCustomerId() : "")
-        : [newEntry()]
-    ));
-  }
-
-  function hasUserEnteredData() {
-    return entries.some(e =>
-      e.itemId ||
-      e.sources.some(l => l.customerId || l.qty) ||
-      e.destinations.some(l => l.customerId || l.qty)
-    );
-  }
-
-  async function handleTemplateChange(id: string) {
-    if (id === templateId()) return;
-    if (hasUserEnteredData()) {
-      const result = await confirmModal.prompt("Changing template will replace current entries. Continue?");
-      if (result !== 'OK') return;
-    }
-    loadTemplate(id);
-  }
-
   async function submit(e: Event) {
     e.preventDefault();
     setError("");
@@ -503,7 +464,6 @@ function TransactionForm(props: {
 
   return (
     <form onSubmit={submit} class="space-y-5">
-      <confirmModal.Modal/>
       <txConfirmModal.Modal/>
       <Show when={state.items.length === 0}>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
@@ -520,15 +480,9 @@ function TransactionForm(props: {
       </Show>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Use Template
-          (optional)</label>
-        <select value={templateId()} onChange={(e) => handleTemplateChange(e.target.value)}
-                class={selFull}>
-          <option value="">— Manual / no template —</option>
-          <For each={props.templates}>
-            {(t) => <option value={t.id}>{t.name}</option>}
-          </For>
-        </select>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <input value={description()} class={'w-full ' + inputCls} onInput={(e) => setDescription(e.target.value)}
+               placeholder="Transaction description..."/>
       </div>
 
       <div>
@@ -592,7 +546,7 @@ function TemplatePicker(props: {
   const [query, setQuery] = createSignal("");
   const filtered = createMemo(() => {
     const q = query().toLowerCase();
-    return q ? props.templates.filter(t => t.name.toLowerCase().includes(q)) : props.templates;
+    return q ? props.templates.filter(t => t.description.toLowerCase().includes(q)) : props.templates;
   });
 
   return (
@@ -609,7 +563,7 @@ function TemplatePicker(props: {
         <For each={filtered()}>
           {(t) => (
             <button type="button" onClick={() => props.onSelect(t.id)} class={templateChoiceBtn}>
-              <p class="font-medium mb-1">{t.name}</p>
+              <p class="font-medium mb-1">{t.description}</p>
               <div class="space-y-1.5">
                 <For each={t.entries}>
                   {(entry, i) => {
@@ -699,83 +653,41 @@ export default function TransactionsPage() {
   const nonCustomerTemplates = createMemo(() => state.templates.filter(t => !isCustomerTemplate(t)));
 
   const initialCustomerTx = searchParams.customerTx as string | undefined;
-  const [modalState, setModalState] = createSignal<TxModalState>(null);
 
-  const customerPickState = () => {
-    const ms = modalState();
-    return ms?.kind === "customer-pick-template" ? ms : undefined;
-  };
-  const customerFormState = () => {
-    const ms = modalState();
-    return ms?.kind === "customer-form" ? ms : undefined;
-  };
-  const nonCustomerPickState = () => {
-    const ms = modalState();
-    return ms?.kind === "non-customer-pick-template" ? ms : undefined;
-  };
-  const nonCustomerFormState = () => {
-    const ms = modalState();
-    return ms?.kind === "non-customer-form" ? ms : undefined;
-  };
+  // State shared between template picker and transaction form modals
+  const [pickerMode, setPickerMode] = createSignal<"customer" | "non-customer">("customer");
+  const [pendingTemplateId, setPendingTemplateId] = createSignal<string | undefined>(undefined);
+  const [pendingDescription, setPendingDescription] = createSignal("");
+  const [pendingCustomerId, setPendingCustomerId] = createSignal("");
 
-  const customerModal = createModal({
-    title: "New Customer Transaction",
-    size: "lg",
+  const templatePickerModal = createModal({
+    title: "Select Template",
     children: (resolve) => (
-      <>
-        <Show when={customerPickState()}>
-          {(ms) => (
-            <TemplatePicker
-              templates={customerTemplates()}
-              onSelect={(id) => setModalState({
-                kind: "customer-form",
-                templateId: id || undefined,
-                initialCustomerId: ms().initialCustomerId,
-              })}
-              onCancel={() => resolve('CANCELLED')}
-            />
-          )}
-        </Show>
-        <Show when={customerFormState()}>
-          {(ms) => (
-            <TransactionForm
-              mode="customer"
-              initialTemplateId={ms().templateId}
-              initialCustomerId={ms().initialCustomerId}
-              templates={customerTemplates()}
-              onSave={() => resolve('OK')}
-              onCancel={() => resolve('CANCELLED')}
-            />
-          )}
-        </Show>
-      </>
+      <TemplatePicker
+        templates={pickerMode() === "customer" ? customerTemplates() : nonCustomerTemplates()}
+        onSelect={(id) => {
+          const tpl = id ? state.templates.find(t => t.id === id) : undefined;
+          setPendingTemplateId(id || undefined);
+          setPendingDescription(tpl?.description ?? "");
+          resolve('OK');
+        }}
+        onCancel={() => resolve('CANCELLED')}
+      />
     ),
   });
 
-  const nonCustomerModal = createModal({
-    title: "New Non-Customer Transaction",
+  const txFormModal = createModal({
+    title: () => pickerMode() === "customer" ? "New Customer Transaction" : "New Transaction",
     size: "lg",
     children: (resolve) => (
-      <>
-        <Show when={nonCustomerPickState()}>
-          <TemplatePicker
-            templates={nonCustomerTemplates()}
-            onSelect={(id) => setModalState({kind: "non-customer-form", templateId: id || undefined})}
-            onCancel={() => resolve('CANCELLED')}
-          />
-        </Show>
-        <Show when={nonCustomerFormState()}>
-          {(ms) => (
-            <TransactionForm
-              mode="non-customer"
-              initialTemplateId={ms().templateId}
-              templates={nonCustomerTemplates()}
-              onSave={() => resolve('OK')}
-              onCancel={() => resolve('CANCELLED')}
-            />
-          )}
-        </Show>
-      </>
+      <TransactionForm
+        mode={pickerMode()}
+        initialTemplateId={pendingTemplateId()}
+        initialDescription={pendingDescription()}
+        initialCustomerId={pendingCustomerId()}
+        onSave={() => resolve('OK')}
+        onCancel={() => resolve('CANCELLED')}
+      />
     ),
   });
 
@@ -783,21 +695,21 @@ export default function TransactionsPage() {
 
   async function openCustomerTx(initialCustomerId = "") {
     setSearchParams({customerTx: undefined});
-    setModalState({kind: "customer-pick-template", initialCustomerId});
-    const result = await customerModal.prompt();
-    // For OK, the confirm modal (rendered inside TransactionForm) resolves its
-    // promise immediately but needs 300ms to finish its slide-out animation.
-    // Delay clearing modal state so TransactionForm stays mounted long enough
-    // for that animation to complete before the component is torn down.
-    if (result === 'OK') setTimeout(() => setModalState(null), 300);
-    else setModalState(null);
+    setPickerMode("customer");
+    setPendingCustomerId(initialCustomerId);
+    if (await templatePickerModal.prompt() !== 'OK') return;
+    await txFormModal.prompt();
+    setPendingTemplateId(undefined);
+    setPendingDescription("");
+    setPendingCustomerId("");
   }
 
   async function openNonCustomerTx() {
-    setModalState({kind: "non-customer-pick-template"});
-    const result = await nonCustomerModal.prompt();
-    if (result === 'OK') setTimeout(() => setModalState(null), 300);
-    else setModalState(null);
+    setPickerMode("non-customer");
+    if (await templatePickerModal.prompt() !== 'OK') return;
+    await txFormModal.prompt();
+    setPendingTemplateId(undefined);
+    setPendingDescription("");
   }
 
   onMount(() => {
@@ -816,7 +728,7 @@ export default function TransactionsPage() {
     const aid = filterAccount();
     return state.transactions.filter(tx => {
       const matchSearch = !q ||
-        tx.templateName?.toLowerCase().includes(q) ||
+        tx.description?.toLowerCase().includes(q) ||
         tx.note?.toLowerCase().includes(q) ||
         tx.date?.includes(q);
       const matchCustomer = !cid || tx.entries.some(e =>
@@ -851,14 +763,14 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <customerModal.Modal/>
-      <nonCustomerModal.Modal/>
+      <templatePickerModal.Modal/>
+      <txFormModal.Modal/>
       <confirmModal.Modal/>
 
       {/* ── Filters ── */}
       <div class="flex gap-3 mb-4 flex-wrap">
         <input type="text" value={search()} onInput={(e) => setSearch(e.target.value)}
-               placeholder="Search by template, note, date..."
+               placeholder="Search by description, note, date..."
                class={`flex-1 min-w-48 ${inputCls}`}/>
       </div>
       <div class="flex gap-3 mb-4 flex-wrap">
@@ -888,7 +800,7 @@ export default function TransactionsPage() {
                   <div class="flex items-start justify-between gap-2 mb-3">
                     <div>
                       <p
-                        class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.templateName ?? "Manual"}</p>
+                        class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || "—"}</p>
                       <TxCustomers tx={tx} customers={state.customers}/>
                       <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {tx.date} &middot; recorded {new Date(tx.createdAt).toLocaleString()}

@@ -178,7 +178,7 @@ export interface Entry {
 export interface Transaction {
   id: string;
   templateId?: string | null;
-  templateName: string;
+  description: string;
   date: string;
   note: string;
   entries: Entry[];
@@ -192,7 +192,7 @@ export interface TemplateEntry {
 
 export interface Template {
   id: string;
-  name: string;
+  description: string;
   entries: TemplateEntry[];
 }
 
@@ -211,7 +211,7 @@ export interface TransactionTemplateEntry {
 
 export interface TransactionTemplate {
   id: string;
-  name: string;
+  description: string;
   entries: TransactionTemplateEntry[];
 }
 
@@ -219,7 +219,7 @@ export interface TransactionTemplate {
 export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   {
     id: "tpl-1",
-    name: "Supplier delivered units to customer",
+    description: "Supplier delivered units to customer",
     entries: [{
       sources: [{accountId: ACCT.SUPPLIER_DELIVERED}],
       destinations: [{accountId: ACCT.DELIVERED_UNITS}],
@@ -227,7 +227,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-2",
-    name: "Unpaid units received by distributor from supplier",
+    description: "Unpaid units received by distributor from supplier",
     entries: [{
       sources: [{accountId: ACCT.RELAYED_TO_DISTRIBUTOR}],
       destinations: [{accountId: ACCT.HELD_UNITS}],
@@ -235,7 +235,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-3",
-    name: "Units delivered by distributor to customer after payment",
+    description: "Units delivered by distributor to customer after payment",
     entries: [{
       sources: [{accountId: ACCT.HELD_UNITS}],
       destinations: [{accountId: ACCT.DELIVERED_UNITS}],
@@ -243,7 +243,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-4",
-    name: "Customer returned usable units to distributor",
+    description: "Customer returned usable units to distributor",
     entries: [{
       sources: [{accountId: ACCT.DELIVERED_UNITS}],
       destinations: [{accountId: ACCT.USABLE_RETURNED_D}],
@@ -251,7 +251,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-5",
-    name: "Customer returned defective units to distributor",
+    description: "Customer returned defective units to distributor",
     entries: [{
       sources: [{accountId: ACCT.DELIVERED_UNITS}],
       destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_D}],
@@ -259,7 +259,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-6",
-    name: "Customer returned usable units to supplier",
+    description: "Customer returned usable units to supplier",
     entries: [{
       sources: [{accountId: ACCT.DELIVERED_UNITS}],
       destinations: [{accountId: ACCT.USABLE_RETURNED_S}],
@@ -267,7 +267,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-7",
-    name: "Customer returned defective units to supplier",
+    description: "Customer returned defective units to supplier",
     entries: [{
       sources: [{accountId: ACCT.DELIVERED_UNITS}],
       destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_S}],
@@ -275,7 +275,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-8",
-    name: "Distributor returned usable units to supplier",
+    description: "Distributor returned usable units to supplier",
     entries: [{
       sources: [{accountId: ACCT.USABLE_RETURNED_D}],
       destinations: [{accountId: ACCT.USABLE_RETURNED_S}],
@@ -283,7 +283,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-9",
-    name: "Distributor returned defective units to supplier",
+    description: "Distributor returned defective units to supplier",
     entries: [{
       sources: [{accountId: ACCT.DEFECTIVE_RETURNED_D}],
       destinations: [{accountId: ACCT.DEFECTIVE_RETURNED_S}],
@@ -291,7 +291,7 @@ export const DEFAULT_TEMPLATES: TransactionTemplate[] = [
   },
   {
     id: "tpl-10",
-    name: "General Correction",
+    description: "General Correction",
     entries: [
       {
         sources: [{accountId: undefined}],
@@ -396,8 +396,12 @@ export function loadStoredData() {
     const data = {
       items: await load<Item[]>("items", []),
       customers: await load<Customer[]>("customers", []),
-      templates: await load<Template[]>("templates", DEFAULT_TEMPLATES as Template[]),
-      transactions: await load<Transaction[]>("transactions", []),
+      templates: (await load<any[]>("templates", DEFAULT_TEMPLATES as any[])).map((t: any) => ({
+        ...t, description: t.description ?? t.name ?? "", // migration from old schema
+      })) as Template[],
+      transactions: (await load<any[]>("transactions", [])).map((tx: any) => ({
+        ...tx, description: tx.description ?? tx.templateName ?? "", // migration from old schema
+      })) as Transaction[],
       accounts: await load<Account[]>("accounts", DEFAULT_ACCOUNTS),
     };
 

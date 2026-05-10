@@ -87,10 +87,10 @@ function LegSelect(props: {
 
 function TemplateForm(props: {
   initial?: Template;
-  onSave: (fields: { name: string; entries: TemplateFormEntry[] }) => void;
+  onSave: (fields: { description: string; entries: TemplateFormEntry[] }) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = createSignal(props.initial?.name ?? "");
+  const [description, setDescription] = createSignal(props.initial?.description ?? "");
   const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
 
   function updateEntry(i: number, updated: TemplateFormEntry) {
@@ -119,15 +119,15 @@ function TemplateForm(props: {
 
   function submit(e: Event) {
     e.preventDefault();
-    if (!name().trim() || entries().length === 0) return;
-    props.onSave({name: name().trim(), entries: entries()});
+    if (!description().trim() || entries().length === 0) return;
+    props.onSave({description: description().trim(), entries: entries()});
   }
 
   return (
     <form onSubmit={submit} class="space-y-4">
       <div>
-        <label class={labelCls}>Template Name *</label>
-        <input value={name()} onInput={(e) => setName(e.target.value)} required class={inputCls}
+        <label class={labelCls}>Description *</label>
+        <input value={description()} onInput={(e) => setDescription(e.target.value)} required class={inputCls}
                placeholder="e.g. Customer return to supplier"/>
       </div>
 
@@ -282,7 +282,7 @@ export default function TemplatesPage() {
   const filteredTemplates = createMemo(() => {
     const q = query().toLowerCase().trim();
     if (!q) return state.templates ?? [];
-    return (state.templates ?? []).filter(t => t.name.toLowerCase().includes(q));
+    return (state.templates ?? []).filter(t => t.description.toLowerCase().includes(q));
   });
 
   async function openModal(m: "add" | Template) {
@@ -342,7 +342,7 @@ export default function TemplatesPage() {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div class="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tpl.name}</p>
+                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tpl.description}</p>
                     <Show when={DEFAULT_TEMPLATES.some((t) => t.id === tpl.id)}>
                       <span class="text-xs text-indigo-500 dark:text-indigo-400 font-medium">Default</span>
                     </Show>

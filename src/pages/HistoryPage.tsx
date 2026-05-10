@@ -19,7 +19,7 @@ export default function HistoryPage() {
     const iid = filterItem();
     return state.transactions.filter((tx) => {
       const matchSearch = !q ||
-        tx.templateName?.toLowerCase().includes(q) ||
+        tx.description?.toLowerCase().includes(q) ||
         tx.note?.toLowerCase().includes(q) ||
         tx.date?.includes(q);
       const matchCustomer = !cid || tx.entries.some((e) =>
@@ -46,7 +46,7 @@ export default function HistoryPage() {
           type="text"
           value={search()}
           onInput={(e) => setSearch(e.target.value)}
-          placeholder="Search by template, note, date..."
+          placeholder="Search by description, note, date..."
           class={`flex-1 min-w-48 ${inputCls}`}
         />
         <div class="min-w-44">
@@ -67,7 +67,7 @@ export default function HistoryPage() {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div class="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.templateName ?? "Manual"}</p>
+                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || "—"}</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">
                       {tx.date} &middot; recorded {new Date(tx.createdAt).toLocaleString()}
                     </p>
