@@ -70,6 +70,14 @@ function newEntry(): FormEntry {
   return {itemId: "", sources: [newLeg()], destinations: [newLeg()]};
 }
 
+function newEntryFromLast(last: FormEntry): FormEntry {
+  return {
+    itemId: "",
+    sources: last.sources.map(l => ({...l, qty: ""})),
+    destinations: last.destinations.map(l => ({...l, qty: ""})),
+  };
+}
+
 function normalizeTemplateLegs(legs: any): FormLeg[] {
   const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = arr.values()
@@ -360,6 +368,93 @@ function TransactionForm(props: {
     return data;
   });
 
+  const txConfirmModal = createModal({
+    title: "Confirm Transaction",
+    size: "lg",
+    children: (resolve) => (
+      <div class="space-y-5">
+        <div class="space-y-1.5 text-sm">
+          <div class="flex gap-2">
+            <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Template</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().templateName}</span>
+          </div>
+          <div class="flex gap-2">
+            <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Date</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().date}</span>
+          </div>
+          <Show when={props.mode === "customer" && txCustomerId()}>
+            <div class="flex gap-2">
+              <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Customer</span>
+              <span class="font-medium text-gray-800 dark:text-gray-100">
+                {state.customers.find(c => c.id === txCustomerId())?.name ?? txCustomerId()}
+              </span>
+            </div>
+          </Show>
+          <Show when={txData().note}>
+            <div class="flex gap-2">
+              <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Note</span>
+              <span class="text-gray-800 dark:text-gray-100 italic">{txData().note}</span>
+            </div>
+          </Show>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Entries</p>
+          <For each={txData().entries}>
+            {(entry, i) => {
+              const item = state.items.find(it => it.id === entry.itemId);
+              return (
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{item?.name ?? entry.itemId}</span>
+                    <Show when={txData().entries.length > 1}>
+                      <span class="text-xs text-gray-400 dark:text-gray-500">· Entry {i() + 1}</span>
+                    </Show>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <p class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</p>
+                      <For each={entry.sources}>
+                        {(leg) => (
+                          <div class="flex justify-between gap-2 text-xs">
+                            <span class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
+                            <span class="font-mono shrink-0 text-gray-500 dark:text-gray-400">{leg.qty}</span>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                    <div class="space-y-1">
+                      <p class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</p>
+                      <For each={entry.destinations}>
+                        {(leg) => (
+                          <div class="flex justify-between gap-2 text-xs">
+                            <span class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
+                            <span class="font-mono shrink-0 text-gray-500 dark:text-gray-400">{leg.qty}</span>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </div>
+                </div>
+              );
+            }}
+          </For>
+        </div>
+
+        <div class="flex gap-2 justify-end">
+          <button type="button" onClick={() => resolve('CANCELLED')}
+                  class={`${secondaryBtn} inline-flex items-center gap-1.5`}>
+            <XIcon/>Back
+          </button>
+          <button type="button" onClick={() => resolve('OK')}
+                  class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 inline-flex items-center gap-1.5">
+            <CheckIcon/>Confirm & Save
+          </button>
+        </div>
+      </div>
+    ),
+  });
+
   function loadTemplate(id: string) {
     setTemplateId(id);
     setError("");
@@ -400,6 +495,8 @@ function TransactionForm(props: {
       setError(err);
       return;
     }
+    const result = await txConfirmModal.prompt();
+    if (result !== 'OK') return;
     await addTransaction(txData());
     props.onSave();
   }
@@ -407,6 +504,7 @@ function TransactionForm(props: {
   return (
     <form onSubmit={submit} class="space-y-5">
       <confirmModal.Modal/>
+      <txConfirmModal.Modal/>
       <Show when={state.items.length === 0}>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
           <p class="text-sm text-yellow-700 dark:text-yellow-400">No items defined yet. Add items in the
@@ -443,7 +541,7 @@ function TransactionForm(props: {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Entries</label>
           <button type="button"
                   onClick={() => setEntries(produce(d => {
-                    d.push(newEntry());
+                    d.push(newEntryFromLast(d[d.length - 1]));
                   }))}
                   class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
             <PlusIcon class="w-3 h-3"/>Add entry
