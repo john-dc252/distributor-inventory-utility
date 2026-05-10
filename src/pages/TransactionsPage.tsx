@@ -890,7 +890,7 @@ export default function TransactionsPage() {
                     </div>
                     <button onClick={() => handleDelete(tx.id)}
                             class="text-xs text-red-400 hover:text-red-600 shrink-0 inline-flex items-center gap-1">
-                      <TrashIcon class="w-3 h-3"/>Delete
+                      <TrashIcon class="w-5 h-5 sm:w-3 sm:h-3"/><span class="hidden sm:inline">Delete</span>
                     </button>
                   </div>
                   <div class="space-y-2">

@@ -5,7 +5,7 @@ import {createConfirmModal} from "../components/ConfirmModal";
 import {CustomerCardSkeleton} from "../components/Skeleton";
 import {CustomersEmptyState} from "../components/EmptyState";
 import {useNavigate} from "@solidjs/router";
-import {ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
+import {CheckIcon, FilePlusIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
 import {inputClsFull as inputCls, labelCls} from "../components/styles";
 
 interface CustomerFields {
@@ -180,15 +180,15 @@ export default function CustomersPage() {
                   <button
                     onClick={() => navigate(`/transactions?customerTx=${customer.id}`)}
                     class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
-                    <ArrowRightIcon/>New Transaction
+                    <FilePlusIcon class="w-5 h-5 sm:w-3.5 sm:h-3.5"/><span class="hidden sm:inline">New Transaction</span>
                   </button>
                   <button onClick={() => openModal(customer)}
                           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
-                    <PencilIcon/>Edit
+                    <PencilIcon class="w-5 h-5 sm:w-3.5 sm:h-3.5"/><span class="hidden sm:inline">Edit</span>
                   </button>
                   <button onClick={() => handleDelete(customer.id)}
                           class="text-sm text-red-500 dark:text-red-400 hover:underline inline-flex items-center gap-1">
-                    <TrashIcon/>Delete
+                    <TrashIcon class="w-5 h-5 sm:w-3.5 sm:h-3.5"/><span class="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>

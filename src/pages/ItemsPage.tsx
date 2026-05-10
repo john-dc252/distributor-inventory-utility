@@ -220,11 +220,11 @@ export default function ItemsPage() {
                 <div class="flex gap-2 shrink-0">
                   <button onClick={() => openModal(item)}
                           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
-                    <PencilIcon/>Edit
+                    <PencilIcon class="w-5 h-5 sm:w-3.5 sm:h-3.5"/><span class="hidden sm:inline">Edit</span>
                   </button>
                   <button onClick={() => handleDelete(item.id)}
                           class="text-sm text-red-500 dark:text-red-400 hover:underline inline-flex items-center gap-1">
-                    <TrashIcon/>Delete
+                    <TrashIcon class="w-5 h-5 sm:w-3.5 sm:h-3.5"/><span class="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>
