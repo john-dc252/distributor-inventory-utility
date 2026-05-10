@@ -360,7 +360,7 @@ function TransactionForm(props: {
   const txConfirmModal = createModal({
     title: "Confirm Transaction",
     size: "lg",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <div class="space-y-5">
         <div class="space-y-1.5 text-sm">
           <div class="flex gap-2">
@@ -395,7 +395,8 @@ function TransactionForm(props: {
               return (
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{item?.name ?? entry.itemId}</span>
+                    <span
+                      class="text-sm font-semibold text-gray-800 dark:text-gray-100">{item?.name ?? entry.itemId}</span>
                     <Show when={txData().entries.length > 1}>
                       <span class="text-xs text-gray-400 dark:text-gray-500">· Entry {i() + 1}</span>
                     </Show>
@@ -406,7 +407,8 @@ function TransactionForm(props: {
                       <For each={entry.sources}>
                         {(leg) => (
                           <div class="flex justify-between gap-2 text-xs">
-                            <span class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
+                            <span
+                              class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
                             <span class="font-mono shrink-0 text-gray-500 dark:text-gray-400">{leg.qty}</span>
                           </div>
                         )}
@@ -417,7 +419,8 @@ function TransactionForm(props: {
                       <For each={entry.destinations}>
                         {(leg) => (
                           <div class="flex justify-between gap-2 text-xs">
-                            <span class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
+                            <span
+                              class="text-gray-700 dark:text-gray-300 truncate">{getAccountLabel(leg.accountId)}</span>
                             <span class="font-mono shrink-0 text-gray-500 dark:text-gray-400">{leg.qty}</span>
                           </div>
                         )}
@@ -431,11 +434,11 @@ function TransactionForm(props: {
         </div>
 
         <div class="flex gap-2 justify-end">
-          <button type="button" onClick={() => resolve('CANCELLED')}
+          <button type="button" onClick={() => cancel()}
                   class={`${secondaryBtn} inline-flex items-center gap-1.5`}>
             <XIcon/>Back
           </button>
-          <button type="button" onClick={() => resolve('OK')}
+          <button type="button" onClick={() => resolve()}
                   class="px-4 py-2 rounded bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 inline-flex items-center gap-1.5">
             <CheckIcon/>Confirm & Save
           </button>
@@ -662,16 +665,16 @@ export default function TransactionsPage() {
 
   const templatePickerModal = createModal({
     title: "Select Template",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <TemplatePicker
         templates={pickerMode() === "customer" ? customerTemplates() : nonCustomerTemplates()}
         onSelect={(id) => {
           const tpl = id ? state.templates.find(t => t.id === id) : undefined;
           setPendingTemplateId(id || undefined);
           setPendingDescription(tpl?.description ?? "");
-          resolve('OK');
+          resolve();
         }}
-        onCancel={() => resolve('CANCELLED')}
+        onCancel={() => cancel()}
       />
     ),
   });
@@ -679,14 +682,14 @@ export default function TransactionsPage() {
   const txFormModal = createModal({
     title: () => pickerMode() === "customer" ? "New Customer Transaction" : "New Transaction",
     size: "lg",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <TransactionForm
         mode={pickerMode()}
         initialTemplateId={pendingTemplateId()}
         initialDescription={pendingDescription()}
         initialCustomerId={pendingCustomerId()}
-        onSave={() => resolve('OK')}
-        onCancel={() => resolve('CANCELLED')}
+        onSave={() => resolve()}
+        onCancel={() => cancel()}
       />
     ),
   });

@@ -90,16 +90,16 @@ export default function CustomersPage() {
 
   const customerModal = createModal({
     title: () => modal() === "add" ? "New Customer" : "Edit Customer",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <CustomerForm
         initial={isEditing() ? (modal() as Customer) : undefined}
         onSave={async (fields) => {
           const m = modal();
           if (m === "add") await addCustomer(fields);
           else if (m) await updateCustomer(m.id, fields);
-          resolve('OK');
+          resolve();
         }}
-        onCancel={() => resolve('CANCELLED')}
+        onCancel={() => cancel()}
       />
     ),
   });

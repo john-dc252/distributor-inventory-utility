@@ -262,16 +262,16 @@ export default function TemplatesPage() {
 
   const templateModal = createModal({
     title: () => modal() === "add" ? "New Template" : "Edit Template",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <TemplateForm
         initial={isEditing() ? (modal() as Template) : undefined}
         onSave={async (fields) => {
           const m = modal();
           if (m === "add") await addTemplate(fields);
           else if (m) await updateTemplate(m.id, fields);
-          resolve('OK');
+          resolve();
         }}
-        onCancel={() => resolve('CANCELLED')}
+        onCancel={() => cancel()}
       />
     ),
   });

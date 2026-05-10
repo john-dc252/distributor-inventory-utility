@@ -2,6 +2,7 @@ import {createStore, produce, unwrap} from "solid-js/store";
 import {dbGet, dbSet} from "./db";
 import {createAsync} from "@solidjs/router";
 import {createEffect, createSignal} from "solid-js";
+import {suspend} from "../utils";
 
 // ── Account schema ─────────────────────────────────────────────────────────────
 export interface Account {
@@ -340,10 +341,6 @@ const [state, setState] = createStore<StoreState>({
 });
 
 export const [isLoaded, setIsLoaded] = createSignal(false);
-
-function suspend(t: number) {
-  return new Promise<void>(resolve => setTimeout(() => resolve(), t));
-}
 
 // ── Reactive account helpers ───────────────────────────────────────────────────
 function findAccountById(accounts: Account[], id: string): Account | undefined {

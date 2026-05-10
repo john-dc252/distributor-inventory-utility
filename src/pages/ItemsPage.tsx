@@ -119,16 +119,16 @@ export default function ItemsPage() {
 
   const itemModal = createModal({
     title: () => modal() === "add" ? "New Item" : "Edit Item",
-    children: (resolve) => (
+    children: (resolve, cancel) => (
       <ItemForm
         initial={isEditing() ? (modal() as Item) : undefined}
         onSave={async (fields) => {
           const m = modal();
           if (m === "add") await addItem(fields);
           else if (m) await updateItem(m.id, fields);
-          resolve('OK');
+          resolve();
         }}
-        onCancel={() => resolve('CANCELLED')}
+        onCancel={() => cancel()}
       />
     ),
   });

@@ -1,6 +1,7 @@
 import {createMemo, createSignal, For, JSX, onCleanup, onMount, Show} from "solid-js";
 import {Portal} from "solid-js/web";
 import {sel} from "./styles";
+import {suspend} from "../utils";
 
 export function Combobox<T extends { id: string }>(props: {
   value?: string;
@@ -15,12 +16,13 @@ export function Combobox<T extends { id: string }>(props: {
 }) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
-  const [pos, setPos] = createSignal<{top?: number; bottom?: number; left: number; width: number} | null>(null);
+  const [pos, setPos] = createSignal<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
   let inputRef!: HTMLInputElement;
   let triggerRef!: HTMLButtonElement;
 
   onMount(() => {
     let lastWidth = window.innerWidth;
+
     function onResize() {
       const w = window.innerWidth;
       if (w === lastWidth) return; // height-only change = virtual keyboard, ignore
@@ -28,6 +30,7 @@ export function Combobox<T extends { id: string }>(props: {
       setOpen(false);
       setQuery("");
     }
+
     window.addEventListener("resize", onResize);
     onCleanup(() => window.removeEventListener("resize", onResize));
   });
@@ -47,7 +50,7 @@ export function Combobox<T extends { id: string }>(props: {
       ...(above ? {bottom: window.innerHeight - r.top + 4} : {top: r.bottom + 4}),
     });
     setOpen(true);
-    setTimeout(() => inputRef?.focus(), 0);
+    suspend(0).then(() => inputRef.focus());
   }
 
   function select(id: string) {
