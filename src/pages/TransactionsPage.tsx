@@ -784,14 +784,20 @@ export default function TransactionsPage() {
   async function openCustomerTx(initialCustomerId = "") {
     setSearchParams({customerTx: undefined});
     setModalState({kind: "customer-pick-template", initialCustomerId});
-    await customerModal.prompt();
-    setModalState(null);
+    const result = await customerModal.prompt();
+    // For OK, the confirm modal (rendered inside TransactionForm) resolves its
+    // promise immediately but needs 300ms to finish its slide-out animation.
+    // Delay clearing modal state so TransactionForm stays mounted long enough
+    // for that animation to complete before the component is torn down.
+    if (result === 'OK') setTimeout(() => setModalState(null), 300);
+    else setModalState(null);
   }
 
   async function openNonCustomerTx() {
     setModalState({kind: "non-customer-pick-template"});
-    await nonCustomerModal.prompt();
-    setModalState(null);
+    const result = await nonCustomerModal.prompt();
+    if (result === 'OK') setTimeout(() => setModalState(null), 300);
+    else setModalState(null);
   }
 
   onMount(() => {
