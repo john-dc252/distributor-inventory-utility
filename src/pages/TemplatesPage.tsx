@@ -255,18 +255,14 @@ function EntryPreview(props: { entry: TemplateEntry }) {
   );
 }
 
-export default function TemplatesPage() {
-  const [modal, setModal] = createSignal<"add" | Template | undefined>();
-
-  const isEditing = () => modal() && modal() !== "add";
-
-  const templateModal = createModal({
-    title: () => modal() === "add" ? "New Template" : "Edit Template",
+function createTemplateEditModal(currentTemplate: () => "add" | Template | undefined) {
+  return createModal({
+    title: () => currentTemplate() === "add" ? "New Template" : "Edit Template",
     children: (resolve, cancel) => (
       <TemplateForm
-        initial={isEditing() ? (modal() as Template) : undefined}
+        initial={currentTemplate() !== "add" ? currentTemplate() as Template : undefined}
         onSave={async (fields) => {
-          const m = modal();
+          const m = currentTemplate();
           if (m === "add") await addTemplate(fields);
           else if (m) await updateTemplate(m.id, fields);
           resolve();
@@ -275,6 +271,12 @@ export default function TemplatesPage() {
       />
     ),
   });
+}
+
+export default function TemplatesPage() {
+  const [modal, setModal] = createSignal<"add" | Template | undefined>();
+
+  const templateModal = createTemplateEditModal(modal);
 
   const confirmModal = createConfirmModal();
 

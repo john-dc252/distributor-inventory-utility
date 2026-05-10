@@ -309,55 +309,13 @@ function EntryCard(props: {
   );
 }
 
-// ── Transaction form ──────────────────────────────────────────────────────────
-function TransactionForm(props: {
+// ── Transaction confirm modal ─────────────────────────────────────────────────
+function createTxConfirmModal(opts: {
+  txData: () => Omit<Transaction, "id" | "createdAt">;
+  txCustomerId: () => string;
   mode: "customer" | "non-customer";
-  initialTemplateId?: string;
-  initialDescription: string;
-  initialCustomerId?: string;
-  onSave: () => void;
-  onCancel: () => void;
 }) {
-  const [description, setDescription] = createSignal(props.initialDescription);
-  const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? "");
-  const [entries, setEntries] = createStore<FormEntry[]>(
-    props.initialTemplateId
-      ? normalizeTemplateEntries(
-        state.templates.find(t => t.id === props.initialTemplateId)?.entries,
-        props.mode === "customer" ? (props.initialCustomerId ?? "") : ""
-      )
-      : [newEntry()]
-  );
-  const [note, setNote] = createSignal("");
-  const [date, setDate] = createSignal(new Date().toISOString().slice(0, 10));
-  const [error, setError] = createSignal("");
-
-  const txData = createMemo(() => {
-    const txCustomer = txCustomerId();
-    const data: Omit<Transaction, "id" | "createdAt"> = {
-      templateId: props.initialTemplateId ?? null,
-      description: description(),
-      date: date(),
-      note: note().trim(),
-      entries: entries.map(en => ({
-        itemId: en.itemId,
-        sources: en.sources.map(l => ({
-          accountId: l.accountId!,
-          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
-          qty: Number(l.qty),
-        })),
-        destinations: en.destinations.map(l => ({
-          accountId: l.accountId!,
-          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
-          qty: Number(l.qty),
-        })),
-      })),
-    };
-
-    return data;
-  });
-
-  const txConfirmModal = createModal({
+  return createModal({
     title: "Confirm Transaction",
     size: "lg",
     children: (resolve, cancel) => (
@@ -365,31 +323,31 @@ function TransactionForm(props: {
         <div class="space-y-1.5 text-sm">
           <div class="flex gap-2">
             <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Description</span>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().description || "—"}</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{opts.txData().description || "—"}</span>
           </div>
           <div class="flex gap-2">
             <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Date</span>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{txData().date}</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{opts.txData().date}</span>
           </div>
-          <Show when={props.mode === "customer" && txCustomerId()}>
+          <Show when={opts.mode === "customer" && opts.txCustomerId()}>
             <div class="flex gap-2">
               <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Customer</span>
               <span class="font-medium text-gray-800 dark:text-gray-100">
-                {state.customers.find(c => c.id === txCustomerId())?.name ?? txCustomerId()}
+                {state.customers.find(c => c.id === opts.txCustomerId())?.name ?? opts.txCustomerId()}
               </span>
             </div>
           </Show>
-          <Show when={txData().note}>
+          <Show when={opts.txData().note}>
             <div class="flex gap-2">
               <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Note</span>
-              <span class="text-gray-800 dark:text-gray-100 italic">{txData().note}</span>
+              <span class="text-gray-800 dark:text-gray-100 italic">{opts.txData().note}</span>
             </div>
           </Show>
         </div>
 
         <div class="space-y-2">
           <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Entries</p>
-          <For each={txData().entries}>
+          <For each={opts.txData().entries}>
             {(entry, i) => {
               const item = state.items.find(it => it.id === entry.itemId);
               return (
@@ -397,7 +355,7 @@ function TransactionForm(props: {
                   <div class="flex items-center gap-2">
                     <span
                       class="text-sm font-semibold text-gray-800 dark:text-gray-100">{item?.name ?? entry.itemId}</span>
-                    <Show when={txData().entries.length > 1}>
+                    <Show when={opts.txData().entries.length > 1}>
                       <span class="text-xs text-gray-400 dark:text-gray-500">· Entry {i() + 1}</span>
                     </Show>
                   </div>
@@ -446,6 +404,57 @@ function TransactionForm(props: {
       </div>
     ),
   });
+}
+
+// ── Transaction form ──────────────────────────────────────────────────────────
+function TransactionForm(props: {
+  mode: "customer" | "non-customer";
+  initialTemplateId?: string;
+  initialDescription: string;
+  initialCustomerId?: string;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const [description, setDescription] = createSignal(props.initialDescription);
+  const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? "");
+  const [entries, setEntries] = createStore<FormEntry[]>(
+    props.initialTemplateId
+      ? normalizeTemplateEntries(
+        state.templates.find(t => t.id === props.initialTemplateId)?.entries,
+        props.mode === "customer" ? (props.initialCustomerId ?? "") : ""
+      )
+      : [newEntry()]
+  );
+  const [note, setNote] = createSignal("");
+  const [date, setDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [error, setError] = createSignal("");
+
+  const txData = createMemo(() => {
+    const txCustomer = txCustomerId();
+    const data: Omit<Transaction, "id" | "createdAt"> = {
+      templateId: props.initialTemplateId ?? null,
+      description: description(),
+      date: date(),
+      note: note().trim(),
+      entries: entries.map(en => ({
+        itemId: en.itemId,
+        sources: en.sources.map(l => ({
+          accountId: l.accountId!,
+          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
+          qty: Number(l.qty),
+        })),
+        destinations: en.destinations.map(l => ({
+          accountId: l.accountId!,
+          customerId: isPerCustomer(l.accountId) ? txCustomer : null,
+          qty: Number(l.qty),
+        })),
+      })),
+    };
+
+    return data;
+  });
+
+  const txConfirmModal = createTxConfirmModal({txData, txCustomerId, mode: props.mode});
 
   async function submit(e: Event) {
     e.preventDefault();
@@ -648,6 +657,45 @@ function TxCustomers(props: { tx: { entries: Entry[] }; customers: Customer[] })
   );
 }
 
+// ── Page modal factories ──────────────────────────────────────────────────────
+function createTemplatePickerModal(opts: {
+  templates: () => Template[];
+  onSelect: (id: string) => void;
+}) {
+  return createModal({
+    title: "Select Template",
+    children: (resolve, cancel) => (
+      <TemplatePicker
+        templates={opts.templates()}
+        onSelect={(id) => { opts.onSelect(id); resolve(); }}
+        onCancel={() => cancel()}
+      />
+    ),
+  });
+}
+
+function createTxFormModal(opts: {
+  mode: () => "customer" | "non-customer";
+  templateId: () => string | undefined;
+  description: () => string;
+  customerId: () => string;
+}) {
+  return createModal({
+    title: () => opts.mode() === "customer" ? "New Customer Transaction" : "New Transaction",
+    size: "lg",
+    children: (resolve, cancel) => (
+      <TransactionForm
+        mode={opts.mode()}
+        initialTemplateId={opts.templateId()}
+        initialDescription={opts.description()}
+        initialCustomerId={opts.customerId()}
+        onSave={() => resolve()}
+        onCancel={() => cancel()}
+      />
+    ),
+  });
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -663,35 +711,20 @@ export default function TransactionsPage() {
   const [pendingDescription, setPendingDescription] = createSignal("");
   const [pendingCustomerId, setPendingCustomerId] = createSignal("");
 
-  const templatePickerModal = createModal({
-    title: "Select Template",
-    children: (resolve, cancel) => (
-      <TemplatePicker
-        templates={pickerMode() === "customer" ? customerTemplates() : nonCustomerTemplates()}
-        onSelect={(id) => {
-          const tpl = id ? state.templates.find(t => t.id === id) : undefined;
-          setPendingTemplateId(id || undefined);
-          setPendingDescription(tpl?.description ?? "");
-          resolve();
-        }}
-        onCancel={() => cancel()}
-      />
-    ),
+  const templatePickerModal = createTemplatePickerModal({
+    templates: () => pickerMode() === "customer" ? customerTemplates() : nonCustomerTemplates(),
+    onSelect: (id) => {
+      const tpl = id ? state.templates.find(t => t.id === id) : undefined;
+      setPendingTemplateId(id || undefined);
+      setPendingDescription(tpl?.description ?? "");
+    },
   });
 
-  const txFormModal = createModal({
-    title: () => pickerMode() === "customer" ? "New Customer Transaction" : "New Transaction",
-    size: "lg",
-    children: (resolve, cancel) => (
-      <TransactionForm
-        mode={pickerMode()}
-        initialTemplateId={pendingTemplateId()}
-        initialDescription={pendingDescription()}
-        initialCustomerId={pendingCustomerId()}
-        onSave={() => resolve()}
-        onCancel={() => cancel()}
-      />
-    ),
+  const txFormModal = createTxFormModal({
+    mode: pickerMode,
+    templateId: pendingTemplateId,
+    description: pendingDescription,
+    customerId: pendingCustomerId,
   });
 
   const confirmModal = createConfirmModal();
