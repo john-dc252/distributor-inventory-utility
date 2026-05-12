@@ -1,12 +1,12 @@
-import {createMemo, createSignal, For, Show} from "solid-js";
-import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} from "../store";
-import {createModal} from "../components/Modal";
-import {createConfirmModal} from "../components/ConfirmModal";
-import {CustomerCardSkeleton} from "../components/Skeleton";
-import {CustomersEmptyState} from "../components/EmptyState";
-import {useNavigate} from "@solidjs/router";
-import {CheckIcon, FilePlusIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
-import {inputClsFull as inputCls, labelCls} from "../components/styles";
+import {createMemo, createSignal, For, Show} from 'solid-js';
+import {addCustomer, Customer, deleteCustomer, isLoaded, state, updateCustomer} from '../store';
+import {createModal} from '../components/Modal';
+import {createConfirmModal} from '../components/ConfirmModal';
+import {CustomerCardSkeleton} from '../components/Skeleton';
+import {CustomersEmptyState} from '../components/EmptyState';
+import {useNavigate} from '@solidjs/router';
+import {CheckIcon, FilePlusIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from '../components/Icons';
+import {inputClsFull as inputCls, labelCls} from '../components/styles';
 
 interface CustomerFields {
   name: string;
@@ -29,7 +29,7 @@ function CustomerForm(props: {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result;
-      if (typeof result === "string") setPhoto(result);
+      if (typeof result === 'string') setPhoto(result);
     };
     reader.readAsDataURL(file);
   }
@@ -50,7 +50,7 @@ function CustomerForm(props: {
           </Show>
           <input type="file" accept="image/*" onChange={handleFile} class="text-sm text-gray-600 dark:text-gray-400"/>
           <Show when={photo()}>
-            <button type="button" onClick={() => setPhoto("")} class="text-xs text-red-500 hover:underline">Remove
+            <button type="button" onClick={() => setPhoto('')} class="text-xs text-red-500 hover:underline">Remove
             </button>
           </Show>
         </div>
@@ -84,18 +84,18 @@ function CustomerForm(props: {
 
 export default function CustomersPage() {
   const navigate = useNavigate();
-  const [modal, setModal] = createSignal<"add" | Customer | undefined>();
+  const [modal, setModal] = createSignal<'add' | Customer | undefined>();
 
-  const isEditing = () => modal() && modal() !== "add";
+  const isEditing = () => modal() && modal() !== 'add';
 
   const customerModal = createModal({
-    title: () => modal() === "add" ? "New Customer" : "Edit Customer",
+    title: () => modal() === 'add' ? 'New Customer' : 'Edit Customer',
     children: (resolve, cancel) => (
       <CustomerForm
         initial={isEditing() ? (modal() as Customer) : undefined}
         onSave={async (fields) => {
           const m = modal();
-          if (m === "add") await addCustomer(fields);
+          if (m === 'add') await addCustomer(fields);
           else if (m) await updateCustomer(m.id, fields);
           resolve();
         }}
@@ -113,14 +113,14 @@ export default function CustomersPage() {
     return (state.customers ?? []).filter(c => c.name.toLowerCase().includes(q));
   });
 
-  async function openModal(m: "add" | Customer) {
+  async function openModal(m: 'add' | Customer) {
     setModal(m);
     await customerModal.prompt();
     setModal(undefined);
   }
 
   async function handleDelete(id: string) {
-    const result = await confirmModal.prompt("Delete this customer? Their account history will remain in transactions.");
+    const result = await confirmModal.prompt('Delete this customer? Their account history will remain in transactions.');
     if (result === 'OK') deleteCustomer(id);
   }
 
@@ -128,7 +128,7 @@ export default function CustomersPage() {
     <div>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Customers</h1>
-        <button onClick={() => openModal("add")}
+        <button onClick={() => openModal('add')}
                 class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
           <PlusIcon/>Add Customer
         </button>

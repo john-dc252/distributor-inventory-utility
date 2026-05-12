@@ -1,7 +1,7 @@
-import {createMemo, createSignal, For, onMount, Show} from "solid-js";
-import {TransactionCardSkeleton} from "../components/Skeleton";
-import {createStore, produce, reconcile} from "solid-js/store";
-import {CheckIcon, PlusIcon, TrashIcon, XIcon} from "../components/Icons";
+import {createMemo, createSignal, For, onMount, Show} from 'solid-js';
+import {TransactionCardSkeleton} from '../components/Skeleton';
+import {createStore, produce, reconcile} from 'solid-js/store';
+import {CheckIcon, PlusIcon, TrashIcon, XIcon} from '../components/Icons';
 import {
   AccountId,
   addTransaction,
@@ -14,17 +14,17 @@ import {
   state,
   Template,
   Transaction,
-} from "../store";
-import {createModal} from "../components/Modal";
-import {createConfirmModal} from "../components/ConfirmModal";
-import {CustomerAvatar} from "../components/CustomerAvatar";
-import {useSearchParams} from "@solidjs/router";
-import {inputCls, secondaryBtn, selFull} from "../components/styles";
-import {ItemCombobox} from "../components/ItemCombobox";
-import {CustomerCombobox} from "../components/CustomerCombobox";
-import {AccountCombobox} from "../components/AccountCombobox";
-import {EntryBlock} from "../components/EntryBlock";
-import {TransactionsEmptyState} from "../components/EmptyState";
+} from '../store';
+import {createModal} from '../components/Modal';
+import {createConfirmModal} from '../components/ConfirmModal';
+import {CustomerAvatar} from '../components/CustomerAvatar';
+import {useSearchParams} from '@solidjs/router';
+import {inputCls, secondaryBtn, selFull} from '../components/styles';
+import {ItemCombobox} from '../components/ItemCombobox';
+import {CustomerCombobox} from '../components/CustomerCombobox';
+import {AccountCombobox} from '../components/AccountCombobox';
+import {EntryBlock} from '../components/EntryBlock';
+import {TransactionsEmptyState} from '../components/EmptyState';
 
 const templateChoiceBtn = `w-full text-left ${inputCls} hover:bg-gray-50 dark:hover:bg-gray-600 transition`;
 
@@ -55,18 +55,18 @@ interface FormEntry {
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
 function newLeg(): FormLeg {
-  return {accountId: undefined, qty: ""};
+  return {accountId: undefined, qty: ''};
 }
 
 function newEntry(): FormEntry {
-  return {itemId: "", sources: [newLeg()], destinations: [newLeg()]};
+  return {itemId: '', sources: [newLeg()], destinations: [newLeg()]};
 }
 
 function newEntryFromLast(last: FormEntry): FormEntry {
   return {
-    itemId: "",
-    sources: last.sources.map(l => ({...l, qty: ""})),
-    destinations: last.destinations.map(l => ({...l, qty: ""})),
+    itemId: '',
+    sources: last.sources.map(l => ({...l, qty: ''})),
+    destinations: last.destinations.map(l => ({...l, qty: ''})),
   };
 }
 
@@ -74,11 +74,11 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
   const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = arr.values()
     .map((leg: any) => {
-      const accountId = (typeof leg === "string" ? leg : leg?.accountId) as AccountId;
+      const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {
         accountId: accountId,
-        customerId: leg?.customerId ?? "",
-        qty: leg?.qty ?? "",
+        customerId: leg?.customerId ?? '',
+        qty: leg?.qty ?? '',
       };
     })
     .filter((leg: FormLeg) => leg.accountId)
@@ -93,10 +93,10 @@ function applyInitialCustomer(legs: FormLeg[], customerId: string): FormLeg[] {
   );
 }
 
-function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ""): FormEntry[] {
+function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ''): FormEntry[] {
   if (!Array.isArray(templateEntries) || templateEntries.length === 0) return [newEntry()];
   return templateEntries.map((te: any) => ({
-    itemId: "",
+    itemId: '',
     sources: applyInitialCustomer(
       normalizeTemplateLegs(te?.sources ?? te?.source),
       initialCustomerId
@@ -108,7 +108,7 @@ function normalizeTemplateEntries(templateEntries: any, initialCustomerId = ""):
   }));
 }
 
-function validateLegs(legs: FormLeg[], entryNum: number, side: "From" | "To", skipCustomerValidation = false): string | null {
+function validateLegs(legs: FormLeg[], entryNum: number, side: 'From' | 'To', skipCustomerValidation = false): string | null {
   for (const [i, leg] of legs.entries()) {
     if (!leg.accountId)
       return `Entry ${entryNum}, ${side} ${i + 1}: select an account.`;
@@ -125,9 +125,9 @@ function validateEntries(entries: FormEntry[], skipCustomerValidation = false): 
   for (const [i, entry] of entries.entries()) {
     const n = i + 1;
     if (!entry.itemId) return `Entry ${n}: select an item.`;
-    const fromErr = validateLegs(entry.sources, n, "From", skipCustomerValidation);
+    const fromErr = validateLegs(entry.sources, n, 'From', skipCustomerValidation);
     if (fromErr) return fromErr;
-    const toErr = validateLegs(entry.destinations, n, "To", skipCustomerValidation);
+    const toErr = validateLegs(entry.destinations, n, 'To', skipCustomerValidation);
     if (toErr) return toErr;
     const srcTotal = entry.sources.reduce((s, l) => s + Number(l.qty), 0);
     const dstTotal = entry.destinations.reduce((s, l) => s + Number(l.qty), 0);
@@ -147,8 +147,8 @@ function isCustomerTemplate(t: Template): boolean {
 // ── Leg row ───────────────────────────────────────────────────────────────────
 function LegRow(props: {
   leg: FormLeg;
-  side: "source" | "destination";
-  mode: "customer" | "non-customer";
+  side: 'source' | 'destination';
+  mode: 'customer' | 'non-customer';
   onUpdate: (leg: FormLeg) => void;
   onRemove: () => void;
   canRemove: boolean;
@@ -157,31 +157,31 @@ function LegRow(props: {
 
   function setField(field: keyof FormLeg, value: string) {
     const updated = {...props.leg, [field]: value};
-    if (field === "accountId" && !isPerCustomer(value as AccountId))
-      updated.customerId = "";
+    if (field === 'accountId' && !isPerCustomer(value as AccountId))
+      updated.customerId = '';
     props.onUpdate(updated);
   }
 
-  const sideColor = props.side === "source"
-    ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-    : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
+  const sideColor = props.side === 'source'
+    ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+    : 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
 
   return (
     <div class={`flex gap-2 items-center flex-wrap rounded px-2 py-1.5 border ${sideColor}`}>
       <div class="flex-1 min-w-40">
         <AccountCombobox value={props.leg.accountId}
-                         onSelect={(type) => setField("accountId", type)}
-                         excludePerCustomer={props.mode === "non-customer"}/>
+                         onSelect={(type) => setField('accountId', type)}
+                         excludePerCustomer={props.mode === 'non-customer'}/>
       </div>
-      <Show when={needsCustomer() && props.mode !== "customer"}>
+      <Show when={needsCustomer() && props.mode !== 'customer'}>
         <div class="flex-1 min-w-44">
           <CustomerCombobox value={props.leg.customerId}
-                            onSelect={(id) => setField("customerId", id)}/>
+                            onSelect={(id) => setField('customerId', id)}/>
         </div>
       </Show>
       <div class="w-24 shrink-0">
         <input type="number" min="0" step="1" value={props.leg.qty}
-               onInput={(e) => setField("qty", e.target.value)}
+               onInput={(e) => setField('qty', e.target.value)}
                class={selFull} placeholder="0"/>
       </div>
       <button type="button" onClick={props.onRemove} disabled={!props.canRemove}
@@ -195,27 +195,27 @@ function LegRow(props: {
 // ── Entry card ────────────────────────────────────────────────────────────────
 function EntryCard(props: {
   entry: FormEntry;
-  mode: "customer" | "non-customer";
+  mode: 'customer' | 'non-customer';
   onUpdate: (entry: FormEntry) => void;
   onRemove: () => void;
   canRemove: boolean;
 }) {
-  function updateLeg(side: "source" | "destination", i: number, updated: FormLeg) {
-    const key = side === "source" ? "sources" : "destinations";
+  function updateLeg(side: 'source' | 'destination', i: number, updated: FormLeg) {
+    const key = side === 'source' ? 'sources' : 'destinations';
     const list = [...props.entry[key]];
     list[i] = updated;
-    props.onUpdate(side === "source"
+    props.onUpdate(side === 'source'
       ? {...props.entry, sources: list}
       : {...props.entry, destinations: list});
   }
 
-  function addLeg(side: "source" | "destination") {
-    const key = side === "source" ? "sources" : "destinations";
+  function addLeg(side: 'source' | 'destination') {
+    const key = side === 'source' ? 'sources' : 'destinations';
     props.onUpdate({...props.entry, [key]: [...props.entry[key], newLeg()]});
   }
 
-  function removeLeg(side: "source" | "destination", i: number) {
-    const key = side === "source" ? "sources" : "destinations";
+  function removeLeg(side: 'source' | 'destination', i: number) {
+    const key = side === 'source' ? 'sources' : 'destinations';
     props.onUpdate({...props.entry, [key]: props.entry[key].filter((_, idx) => idx !== i)});
   }
 
@@ -224,8 +224,8 @@ function EntryCard(props: {
   const hasMismatch = () => sourceTotal() > 0 && destTotal() > 0 && sourceTotal() !== destTotal();
   const totalCls = () => {
     if (sourceTotal() > 0 && destTotal() > 0)
-      return hasMismatch() ? "text-red-500 dark:text-red-400" : "text-green-600 dark:text-green-400";
-    return "text-gray-400 dark:text-gray-500";
+      return hasMismatch() ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+    return 'text-gray-400 dark:text-gray-500';
   };
 
   return (
@@ -249,7 +249,7 @@ function EntryCard(props: {
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
-          <button type="button" onClick={() => addLeg("source")}
+          <button type="button" onClick={() => addLeg('source')}
                   class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
             <PlusIcon class="w-3 h-3"/>add
           </button>
@@ -262,8 +262,8 @@ function EntryCard(props: {
         <For each={props.entry.sources}>
           {(leg, i) => (
             <LegRow leg={leg} side="source" mode={props.mode}
-                    onUpdate={(u) => updateLeg("source", i(), u)}
-                    onRemove={() => removeLeg("source", i())}
+                    onUpdate={(u) => updateLeg('source', i(), u)}
+                    onRemove={() => removeLeg('source', i())}
                     canRemove={props.entry.sources.length > 1}/>
           )}
         </For>
@@ -279,7 +279,7 @@ function EntryCard(props: {
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
-          <button type="button" onClick={() => addLeg("destination")}
+          <button type="button" onClick={() => addLeg('destination')}
                   class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
             <PlusIcon class="w-3 h-3"/>add
           </button>
@@ -292,8 +292,8 @@ function EntryCard(props: {
         <For each={props.entry.destinations}>
           {(leg, i) => (
             <LegRow leg={leg} side="destination" mode={props.mode}
-                    onUpdate={(u) => updateLeg("destination", i(), u)}
-                    onRemove={() => removeLeg("destination", i())}
+                    onUpdate={(u) => updateLeg('destination', i(), u)}
+                    onRemove={() => removeLeg('destination', i())}
                     canRemove={props.entry.destinations.length > 1}/>
           )}
         </For>
@@ -311,25 +311,25 @@ function EntryCard(props: {
 
 // ── Transaction confirm modal ─────────────────────────────────────────────────
 function createTxConfirmModal(opts: {
-  txData: () => Omit<Transaction, "id" | "createdAt">;
+  txData: () => Omit<Transaction, 'id' | 'createdAt'>;
   txCustomerId: () => string;
-  mode: "customer" | "non-customer";
+  mode: 'customer' | 'non-customer';
 }) {
   return createModal({
-    title: "Confirm Transaction",
-    size: "lg",
+    title: 'Confirm Transaction',
+    size: 'lg',
     children: (resolve, cancel) => (
       <div class="space-y-5">
         <div class="space-y-1.5 text-sm">
           <div class="flex gap-2">
             <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Description</span>
-            <span class="font-medium text-gray-800 dark:text-gray-100">{opts.txData().description || "—"}</span>
+            <span class="font-medium text-gray-800 dark:text-gray-100">{opts.txData().description || '—'}</span>
           </div>
           <div class="flex gap-2">
             <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Date</span>
             <span class="font-medium text-gray-800 dark:text-gray-100">{opts.txData().date}</span>
           </div>
-          <Show when={opts.mode === "customer" && opts.txCustomerId()}>
+          <Show when={opts.mode === 'customer' && opts.txCustomerId()}>
             <div class="flex gap-2">
               <span class="text-gray-500 dark:text-gray-400 min-w-[5rem] shrink-0">Customer</span>
               <span class="font-medium text-gray-800 dark:text-gray-100">
@@ -408,7 +408,7 @@ function createTxConfirmModal(opts: {
 
 // ── Transaction form ──────────────────────────────────────────────────────────
 function TransactionForm(props: {
-  mode: "customer" | "non-customer";
+  mode: 'customer' | 'non-customer';
   initialTemplateId?: string;
   initialDescription: string;
   initialCustomerId?: string;
@@ -416,22 +416,22 @@ function TransactionForm(props: {
   onCancel: () => void;
 }) {
   const [description, setDescription] = createSignal(props.initialDescription);
-  const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? "");
+  const [txCustomerId, setTxCustomerId] = createSignal(props.initialCustomerId ?? '');
   const [entries, setEntries] = createStore<FormEntry[]>(
     props.initialTemplateId
       ? normalizeTemplateEntries(
         state.templates.find(t => t.id === props.initialTemplateId)?.entries,
-        props.mode === "customer" ? (props.initialCustomerId ?? "") : ""
+        props.mode === 'customer' ? (props.initialCustomerId ?? '') : ''
       )
       : [newEntry()]
   );
-  const [note, setNote] = createSignal("");
+  const [note, setNote] = createSignal('');
   const [date, setDate] = createSignal(new Date().toISOString().slice(0, 10));
-  const [error, setError] = createSignal("");
+  const [error, setError] = createSignal('');
 
   const txData = createMemo(() => {
     const txCustomer = txCustomerId();
-    const data: Omit<Transaction, "id" | "createdAt"> = {
+    const data: Omit<Transaction, 'id' | 'createdAt'> = {
       templateId: props.initialTemplateId ?? null,
       description: description(),
       date: date(),
@@ -458,12 +458,12 @@ function TransactionForm(props: {
 
   async function submit(e: Event) {
     e.preventDefault();
-    setError("");
-    if (props.mode === "customer" && !txCustomerId()) {
-      setError("Select a customer for this transaction.");
+    setError('');
+    if (props.mode === 'customer' && !txCustomerId()) {
+      setError('Select a customer for this transaction.');
       return;
     }
-    const err = validateEntries(entries, props.mode === "customer");
+    const err = validateEntries(entries, props.mode === 'customer');
     if (err) {
       setError(err);
       return;
@@ -484,7 +484,7 @@ function TransactionForm(props: {
         </div>
       </Show>
 
-      <Show when={props.mode === "customer"}>
+      <Show when={props.mode === 'customer'}>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Customer *</label>
           <CustomerCombobox value={txCustomerId()} onSelect={setTxCustomerId}/>
@@ -555,7 +555,7 @@ function TemplatePicker(props: {
   onSelect: (templateId: string) => void;
   onCancel: () => void;
 }) {
-  const [query, setQuery] = createSignal("");
+  const [query, setQuery] = createSignal('');
   const filtered = createMemo(() => {
     const q = query().toLowerCase();
     return q ? props.templates.filter(t => t.description.toLowerCase().includes(q)) : props.templates;
@@ -568,7 +568,7 @@ function TemplatePicker(props: {
              placeholder="Search templates..." class={`w-full ${inputCls}`}/>
       <div class="space-y-2 max-h-64 overflow-auto pr-1">
         <Show when={!query()}>
-          <button type="button" onClick={() => props.onSelect("")} class={templateChoiceBtn}>
+          <button type="button" onClick={() => props.onSelect('')} class={templateChoiceBtn}>
             — Manual / no template —
           </button>
         </Show>
@@ -663,7 +663,7 @@ function createTemplatePickerModal(opts: {
   onSelect: (id: string) => void;
 }) {
   return createModal({
-    title: "Select Template",
+    title: 'Select Template',
     children: (resolve, cancel) => (
       <TemplatePicker
         templates={opts.templates()}
@@ -675,14 +675,14 @@ function createTemplatePickerModal(opts: {
 }
 
 function createTxFormModal(opts: {
-  mode: () => "customer" | "non-customer";
+  mode: () => 'customer' | 'non-customer';
   templateId: () => string | undefined;
   description: () => string;
   customerId: () => string;
 }) {
   return createModal({
-    title: () => opts.mode() === "customer" ? "New Customer Transaction" : "New Transaction",
-    size: "lg",
+    title: () => opts.mode() === 'customer' ? 'New Customer Transaction' : 'New Transaction',
+    size: 'lg',
     children: (resolve, cancel) => (
       <TransactionForm
         mode={opts.mode()}
@@ -706,17 +706,17 @@ export default function TransactionsPage() {
   const initialCustomerTx = searchParams.customerTx as string | undefined;
 
   // State shared between template picker and transaction form modals
-  const [pickerMode, setPickerMode] = createSignal<"customer" | "non-customer">("customer");
+  const [pickerMode, setPickerMode] = createSignal<'customer' | 'non-customer'>('customer');
   const [pendingTemplateId, setPendingTemplateId] = createSignal<string | undefined>(undefined);
-  const [pendingDescription, setPendingDescription] = createSignal("");
-  const [pendingCustomerId, setPendingCustomerId] = createSignal("");
+  const [pendingDescription, setPendingDescription] = createSignal('');
+  const [pendingCustomerId, setPendingCustomerId] = createSignal('');
 
   const templatePickerModal = createTemplatePickerModal({
-    templates: () => pickerMode() === "customer" ? customerTemplates() : nonCustomerTemplates(),
+    templates: () => pickerMode() === 'customer' ? customerTemplates() : nonCustomerTemplates(),
     onSelect: (id) => {
       const tpl = id ? state.templates.find(t => t.id === id) : undefined;
       setPendingTemplateId(id || undefined);
-      setPendingDescription(tpl?.description ?? "");
+      setPendingDescription(tpl?.description ?? '');
     },
   });
 
@@ -729,33 +729,33 @@ export default function TransactionsPage() {
 
   const confirmModal = createConfirmModal();
 
-  async function openCustomerTx(initialCustomerId = "") {
+  async function openCustomerTx(initialCustomerId = '') {
     setSearchParams({customerTx: undefined});
-    setPickerMode("customer");
+    setPickerMode('customer');
     setPendingCustomerId(initialCustomerId);
     if (await templatePickerModal.prompt() !== 'OK') return;
     await txFormModal.prompt();
     setPendingTemplateId(undefined);
-    setPendingDescription("");
-    setPendingCustomerId("");
+    setPendingDescription('');
+    setPendingCustomerId('');
   }
 
   async function openNonCustomerTx() {
-    setPickerMode("non-customer");
+    setPickerMode('non-customer');
     if (await templatePickerModal.prompt() !== 'OK') return;
     await txFormModal.prompt();
     setPendingTemplateId(undefined);
-    setPendingDescription("");
+    setPendingDescription('');
   }
 
   onMount(() => {
     if (initialCustomerTx) openCustomerTx(initialCustomerTx);
   });
 
-  const [search, setSearch] = createSignal("");
-  const [filterCustomer, setFilterCustomer] = createSignal("");
-  const [filterItem, setFilterItem] = createSignal("");
-  const [filterAccount, setFilterAccount] = createSignal("");
+  const [search, setSearch] = createSignal('');
+  const [filterCustomer, setFilterCustomer] = createSignal('');
+  const [filterItem, setFilterItem] = createSignal('');
+  const [filterAccount, setFilterAccount] = createSignal('');
 
   const filtered = createMemo(() => {
     const q = search().toLowerCase();
@@ -777,7 +777,7 @@ export default function TransactionsPage() {
   });
 
   async function handleDelete(id: string) {
-    const result = await confirmModal.prompt("Delete this transaction? This will affect account balances.");
+    const result = await confirmModal.prompt('Delete this transaction? This will affect account balances.');
     if (result === 'OK') deleteTransaction(id);
   }
 
@@ -836,7 +836,7 @@ export default function TransactionsPage() {
                   <div class="flex items-start justify-between gap-2 mb-3">
                     <div>
                       <p
-                        class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || "—"}</p>
+                        class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || '—'}</p>
                       <TxCustomers tx={tx} customers={state.customers}/>
                       <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                         {tx.date} &middot; recorded {new Date(tx.createdAt).toLocaleString()}

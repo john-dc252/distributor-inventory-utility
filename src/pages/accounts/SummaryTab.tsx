@@ -1,4 +1,4 @@
-import {createMemo, createSignal, For, Show} from "solid-js";
+import {createMemo, createSignal, For, Show} from 'solid-js';
 import {
   computeBalance,
   Customer,
@@ -8,10 +8,10 @@ import {
   PREDEFINED_ACCOUNT_IDS,
   state,
   SUPPLIER_INVENTORY_NEGATIVE_SUBACCOUNTS,
-} from "../../store";
-import {AccountCardSkeleton} from "../../components/Skeleton";
-import {CustomerAvatar} from "../../components/CustomerAvatar";
-import {ItemCombobox} from "../../components/ItemCombobox";
+} from '../../store';
+import {AccountCardSkeleton} from '../../components/Skeleton';
+import {CustomerAvatar} from '../../components/CustomerAvatar';
+import {ItemCombobox} from '../../components/ItemCombobox';
 
 function normalizeZero(raw: number) {
   return -raw || 0;
@@ -47,7 +47,7 @@ function ItemRows(props: {
               </span>
               <span class="truncate">{item.name}</span>
             </span>
-            <span class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
+            <span class={`text-sm font-mono font-semibold ml-2 shrink-0 ${bal < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`}>
               {bal.toLocaleString()}
             </span>
           </div>
@@ -74,7 +74,7 @@ function LeafBlock(props: {
   }
 
   function balCls(bal: number) {
-    return `text-sm font-mono font-semibold shrink-0 ${bal < 0 ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`;
+    return `text-sm font-mono font-semibold shrink-0 ${bal < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-100'}`;
   }
 
   function customerHasQtyForAnyItem(c: Customer) {
@@ -88,11 +88,11 @@ function LeafBlock(props: {
   const compact = () => props.showZero && props.items.length === 1;
 
   const labelCls = () => props.depth === 1
-    ? "border-l-2 border-indigo-400 dark:border-indigo-500 pl-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2"
-    : "pl-1 text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5";
+    ? 'border-l-2 border-indigo-400 dark:border-indigo-500 pl-2 text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2'
+    : 'pl-1 text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5';
 
   return (
-    <div class={`jn-leaf-block mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
+    <div class={`jn-leaf-block mt-3 ${props.depth > 1 ? 'ml-4' : ''}`}>
       <Show when={compact() && !iterCustomers()} fallback={
         <>
           <div class={labelCls()}>{props.account.name}</div>
@@ -168,7 +168,7 @@ function GroupBlock(props: {
   depth: number;
 }) {
   return (
-    <div class={`jn-group-block mt-3 ${props.depth > 1 ? "ml-4" : ""}`}>
+    <div class={`jn-group-block mt-3 ${props.depth > 1 ? 'ml-4' : ''}`}>
       <div class="border-l-2 border-gray-300 dark:border-gray-600 pl-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
         {props.account.name}
       </div>
@@ -292,8 +292,8 @@ function CustomerCard(props: {
 }
 
 export function SummaryTab() {
-  const [selectedItemId, setSelectedItemId] = createSignal("");
-  const showZero = () => selectedItemId() !== "";
+  const [selectedItemId, setSelectedItemId] = createSignal('');
+  const showZero = () => selectedItemId() !== '';
 
   const displayItems = createMemo((): Item[] => {
     const id = selectedItemId();
@@ -346,7 +346,7 @@ export function SummaryTab() {
           <Show when={state.customers.length > 0} fallback={
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
               <h2 class="font-semibold text-indigo-700 dark:text-indigo-400 text-sm uppercase tracking-wide mb-3">
-                {customerRoot()?.name ?? "Customer Inventory"}
+                {customerRoot()?.name ?? 'Customer Inventory'}
               </h2>
               <p class="text-sm text-gray-400 dark:text-gray-500">No customers yet.</p>
             </div>

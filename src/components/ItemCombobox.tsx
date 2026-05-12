@@ -1,6 +1,6 @@
-import {Item, state} from "../store";
-import {Combobox} from "./Combobox";
-import {createMemo, Show} from "solid-js";
+import {Item, state} from '../store';
+import {Combobox} from './Combobox';
+import {createMemo, Show} from 'solid-js';
 
 interface ItemDisplayProps {
   item: Item;
@@ -17,8 +17,8 @@ function ItemDisplay(props: ItemDisplayProps) {
   );
 }
 
-const selectItemOption: Item = {id: "", name: "Select an item", createdAt: ""};
-const selectAllItem: Item = {id: "", name: "All Items", createdAt: ""};
+const selectItemOption: Item = {id: '', name: 'Select an item', createdAt: ''};
+const selectAllItem: Item = {id: '', name: 'All Items', createdAt: ''};
 
 export function ItemCombobox(
   props: { value: string; onSelect: (id: string) => void; allowAll?: boolean },

@@ -1,6 +1,6 @@
-import {createMemo, For, Show} from "solid-js";
-import {AccountId, Customer, Entry, Item, Leg} from "../store";
-import {LegPill} from "./LegPill";
+import {createMemo, For, Show} from 'solid-js';
+import {AccountId, Customer, Entry, Item, Leg} from '../store';
+import {LegPill} from './LegPill';
 
 export function EntryBlock(props: {
   entry: Entry;
@@ -12,7 +12,7 @@ export function EntryBlock(props: {
   const resolveLegs = (legs: Leg[]) => {
     const arr = legs || []; // Ensure it's an array, even if null/undefined
     return arr.map((leg) => {
-      const legObj = typeof leg === "string" ? {accountId: leg as AccountId, qty: 0} : leg;
+      const legObj = typeof leg === 'string' ? {accountId: leg as AccountId, qty: 0} : leg;
       return {
         ...legObj,
         customerName: legObj.customerId && props.customers
@@ -39,8 +39,8 @@ export function EntryBlock(props: {
         </Show>
       }>
         <span class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{entryItem()?.id ?? "-"}</span>
-          {entryItem()?.name ?? "-"}
+          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{entryItem()?.id ?? '-'}</span>
+          {entryItem()?.name ?? '-'}
         </span>
       </Show>
       <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">

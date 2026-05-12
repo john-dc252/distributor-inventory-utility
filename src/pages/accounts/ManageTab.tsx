@@ -1,4 +1,4 @@
-import {createSignal, For, Show} from "solid-js";
+import {createSignal, For, Show} from 'solid-js';
 import {
   accountCodeExists,
   addAccount,
@@ -7,16 +7,16 @@ import {
   PREDEFINED_ACCOUNT_ID_SET,
   state,
   updateAccount,
-} from "../../store";
-import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from "../../components/Icons";
-import {inputCls} from "../../components/styles";
+} from '../../store';
+import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from '../../components/Icons';
+import {inputCls} from '../../components/styles';
 
 function AccountEditForm(props: { account: Account; onDone: () => void }) {
   const [code, setCode] = createSignal(props.account.code);
   const [name, setName] = createSignal(props.account.name);
-  const [description, setDescription] = createSignal(props.account.description ?? "");
+  const [description, setDescription] = createSignal(props.account.description ?? '');
   const [customerSpecific, setCustomerSpecific] = createSignal(props.account.customerSpecific);
-  const [error, setError] = createSignal("");
+  const [error, setError] = createSignal('');
 
   async function save(e: Event) {
     e.preventDefault();
@@ -68,11 +68,11 @@ function AccountEditForm(props: { account: Account; onDone: () => void }) {
 }
 
 function AccountAddForm(props: { parentId: string | null; customerSpecific?: boolean; onDone: () => void }) {
-  const [code, setCode] = createSignal("");
-  const [name, setName] = createSignal("");
-  const [description, setDescription] = createSignal("");
+  const [code, setCode] = createSignal('');
+  const [name, setName] = createSignal('');
+  const [description, setDescription] = createSignal('');
   const [customerSpecific, setCustomerSpecific] = createSignal(props.customerSpecific ?? false);
-  const [error, setError] = createSignal("");
+  const [error, setError] = createSignal('');
 
   async function save(e: Event) {
     e.preventDefault();
@@ -135,7 +135,7 @@ function AccountNode(props: { account: Account; depth: number }) {
       <Show when={editing()} fallback={
         <div
           class="flex items-center gap-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
-          style={{"padding-left": `calc(${indent()} + 0.375rem)`, "padding-right": "0.375rem"}}>
+          style={{'padding-left': `calc(${indent()} + 0.375rem)`, 'padding-right': '0.375rem'}}>
           <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
             {props.account.code}
           </span>
@@ -182,13 +182,13 @@ function AccountNode(props: { account: Account; depth: number }) {
           </div>
         </div>
       }>
-        <div style={{"padding-left": indent()}}>
+        <div style={{'padding-left': indent()}}>
           <AccountEditForm account={props.account} onDone={() => setEditing(false)}/>
         </div>
       </Show>
 
       <Show when={addingChild()}>
-        <div style={{"padding-left": `${(props.depth + 1) * 1.25}rem`}}>
+        <div style={{'padding-left': `${(props.depth + 1) * 1.25}rem`}}>
           <AccountAddForm parentId={props.account.id} customerSpecific={props.account.customerSpecific}
                           onDone={() => setAddingChild(false)}/>
         </div>

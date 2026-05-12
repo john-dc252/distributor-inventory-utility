@@ -1,8 +1,7 @@
-import {createSignal, JSX, onCleanup, onMount, Show} from "solid-js";
-import {A} from "@solidjs/router";
-import {isLoaded} from "../store";
-import ThemeToggle from "./ThemeToggle";
-import type { RouteDefinition } from "@solidjs/router"; // Assuming RouteDefinition or similar type exists for router links
+import {createSignal, JSX, onCleanup, onMount, Show} from 'solid-js';
+import {A} from '@solidjs/router';
+import {isLoaded} from '../store';
+import ThemeToggle from './ThemeToggle';
 
 interface NavItem {
   href: string;
@@ -10,11 +9,11 @@ interface NavItem {
   end?: boolean;
 }
 const NAV: NavItem[] = [
-  {href: "/", label: "Accounts", end: true},
-  {href: "/items", label: "Items"},
-  {href: "/customers", label: "Customers"},
-  {href: "/transactions", label: "Transactions"},
-  {href: "/templates", label: "Templates"},
+  {href: '/', label: 'Accounts', end: true},
+  {href: '/items', label: 'Items'},
+  {href: '/customers', label: 'Customers'},
+  {href: '/transactions', label: 'Transactions'},
+  {href: '/templates', label: 'Templates'},
 ];
 
 export default function Layout(props: { children?: JSX.Element }) {
@@ -44,11 +43,11 @@ export default function Layout(props: { children?: JSX.Element }) {
       if (window.innerWidth >= 768) setHeaderVisible(true);
     };
 
-    window.addEventListener("scroll", onScroll, {passive: true});
-    window.addEventListener("resize", onResize);
+    window.addEventListener('scroll', onScroll, {passive: true});
+    window.addEventListener('resize', onResize);
     onCleanup(() => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
     });
   });
 
@@ -68,7 +67,7 @@ export default function Layout(props: { children?: JSX.Element }) {
         </div>
       </Show>
       <nav
-        class={`fixed top-0 left-0 right-0 z-30 bg-indigo-700 dark:bg-indigo-900 text-white shadow transition-transform duration-300 ease-in-out md:translate-y-0 ${headerVisible() ? "translate-y-0" : "-translate-y-full"}`}>
+        class={`fixed top-0 left-0 right-0 z-30 bg-indigo-700 dark:bg-indigo-900 text-white shadow transition-transform duration-300 ease-in-out md:translate-y-0 ${headerVisible() ? 'translate-y-0' : '-translate-y-full'}`}>
         <div class="max-w-6xl mx-auto px-4">
           <div class="flex items-center h-14">
             <span class="font-bold text-lg shrink-0">Distributor Inventory Utility</span>

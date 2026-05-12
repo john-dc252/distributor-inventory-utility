@@ -1,4 +1,4 @@
-import {createMemo, createSignal, For, Show} from "solid-js";
+import {createMemo, createSignal, For, Show} from 'solid-js';
 import {
   AccountId,
   addTemplate,
@@ -12,13 +12,13 @@ import {
   Template,
   TemplateEntry,
   updateTemplate
-} from "../store";
-import {createModal} from "../components/Modal";
-import {createConfirmModal} from "../components/ConfirmModal";
-import {TemplateCardSkeleton} from "../components/Skeleton";
-import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
-import {inputClsFull as inputCls, labelCls} from "../components/styles";
-import {AccountCombobox} from "../components/AccountCombobox";
+} from '../store';
+import {createModal} from '../components/Modal';
+import {createConfirmModal} from '../components/ConfirmModal';
+import {TemplateCardSkeleton} from '../components/Skeleton';
+import {CheckIcon, PencilIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon, XIcon} from '../components/Icons';
+import {inputClsFull as inputCls, labelCls} from '../components/styles';
+import {AccountCombobox} from '../components/AccountCombobox';
 
 interface TemplateFormLeg {
   accountId?: AccountId;
@@ -41,7 +41,7 @@ function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
   const normalized = legsArray.values()
     .map((leg) => {
-      const accountId = (typeof leg === "string" ? leg : leg?.accountId) as AccountId;
+      const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {accountId: accountId};
     })
     .filter((leg) => leg.accountId)
@@ -61,14 +61,14 @@ function normalizeTemplateEntries(templateEntries: any): TemplateFormEntry[] {
 
 function LegSelect(props: {
   leg: TemplateFormLeg;
-  side: "source" | "destination";
+  side: 'source' | 'destination';
   onUpdate: (leg: TemplateFormLeg) => void;
   onRemove: () => void;
   canRemove: boolean;
 }) {
-  const color = () => props.side === "source"
-    ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
-    : "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20";
+  const color = () => props.side === 'source'
+    ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
+    : 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
   return (
     <div class={`flex gap-2 items-center rounded px-2 py-1.5 border ${color()}`}>
       <div class="flex-1 min-w-0">
@@ -90,29 +90,29 @@ function TemplateForm(props: {
   onSave: (fields: { description: string; entries: TemplateFormEntry[] }) => void;
   onCancel: () => void;
 }) {
-  const [description, setDescription] = createSignal(props.initial?.description ?? "");
+  const [description, setDescription] = createSignal(props.initial?.description ?? '');
   const [entries, setEntries] = createSignal(normalizeTemplateEntries(props.initial?.entries));
 
   function updateEntry(i: number, updated: TemplateFormEntry) {
     setEntries((prev) => prev.map((e, idx) => idx === i ? updated : e));
   }
 
-  function updateLeg(ei: number, side: "source" | "destination", li: number, updated: TemplateFormLeg) {
-    const key = side === "source" ? "sources" : "destinations";
+  function updateLeg(ei: number, side: 'source' | 'destination', li: number, updated: TemplateFormLeg) {
+    const key = side === 'source' ? 'sources' : 'destinations';
     const entry = entries()[ei];
     const list = [...entry[key]];
     list[li] = updated;
     updateEntry(ei, {...entry, [key]: list});
   }
 
-  function addLeg(ei: number, side: "source" | "destination") {
-    const key = side === "source" ? "sources" : "destinations";
+  function addLeg(ei: number, side: 'source' | 'destination') {
+    const key = side === 'source' ? 'sources' : 'destinations';
     const entry = entries()[ei];
     updateEntry(ei, {...entry, [key]: [...entry[key], newLeg()]});
   }
 
-  function removeLeg(ei: number, side: "source" | "destination", li: number) {
-    const key = side === "source" ? "sources" : "destinations";
+  function removeLeg(ei: number, side: 'source' | 'destination', li: number) {
+    const key = side === 'source' ? 'sources' : 'destinations';
     const entry = entries()[ei];
     updateEntry(ei, {...entry, [key]: entry[key].filter((_, idx) => idx !== li)});
   }
@@ -158,7 +158,7 @@ function TemplateForm(props: {
               <div class="space-y-1">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">From</span>
-                  <button type="button" onClick={() => addLeg(ei(), "source")}
+                  <button type="button" onClick={() => addLeg(ei(), 'source')}
                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PlusIcon class="w-3 h-3"/>add
                   </button>
@@ -171,8 +171,8 @@ function TemplateForm(props: {
                   {(leg, li) => (
                     <LegSelect
                       leg={leg} side="source"
-                      onUpdate={(u) => updateLeg(ei(), "source", li(), u)}
-                      onRemove={() => removeLeg(ei(), "source", li())}
+                      onUpdate={(u) => updateLeg(ei(), 'source', li(), u)}
+                      onRemove={() => removeLeg(ei(), 'source', li())}
                       canRemove={entry.sources.length > 1}
                     />
                   )}
@@ -184,7 +184,7 @@ function TemplateForm(props: {
                 <div class="flex items-center justify-between">
                   <span
                     class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">To</span>
-                  <button type="button" onClick={() => addLeg(ei(), "destination")}
+                  <button type="button" onClick={() => addLeg(ei(), 'destination')}
                           class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                     <PlusIcon class="w-3 h-3"/>add
                   </button>
@@ -197,8 +197,8 @@ function TemplateForm(props: {
                   {(leg, li) => (
                     <LegSelect
                       leg={leg} side="destination"
-                      onUpdate={(u) => updateLeg(ei(), "destination", li(), u)}
-                      onRemove={() => removeLeg(ei(), "destination", li())}
+                      onUpdate={(u) => updateLeg(ei(), 'destination', li(), u)}
+                      onRemove={() => removeLeg(ei(), 'destination', li())}
                       canRemove={entry.destinations.length > 1}
                     />
                   )}
@@ -255,15 +255,15 @@ function EntryPreview(props: { entry: TemplateEntry }) {
   );
 }
 
-function createTemplateEditModal(currentTemplate: () => "add" | Template | undefined) {
+function createTemplateEditModal(currentTemplate: () => 'add' | Template | undefined) {
   return createModal({
-    title: () => currentTemplate() === "add" ? "New Template" : "Edit Template",
+    title: () => currentTemplate() === 'add' ? 'New Template' : 'Edit Template',
     children: (resolve, cancel) => (
       <TemplateForm
-        initial={currentTemplate() !== "add" ? currentTemplate() as Template : undefined}
+        initial={currentTemplate() !== 'add' ? currentTemplate() as Template : undefined}
         onSave={async (fields) => {
           const m = currentTemplate();
-          if (m === "add") await addTemplate(fields);
+          if (m === 'add') await addTemplate(fields);
           else if (m) await updateTemplate(m.id, fields);
           resolve();
         }}
@@ -274,7 +274,7 @@ function createTemplateEditModal(currentTemplate: () => "add" | Template | undef
 }
 
 export default function TemplatesPage() {
-  const [modal, setModal] = createSignal<"add" | Template | undefined>();
+  const [modal, setModal] = createSignal<'add' | Template | undefined>();
 
   const templateModal = createTemplateEditModal(modal);
 
@@ -287,19 +287,19 @@ export default function TemplatesPage() {
     return (state.templates ?? []).filter(t => t.description.toLowerCase().includes(q));
   });
 
-  async function openModal(m: "add" | Template) {
+  async function openModal(m: 'add' | Template) {
     setModal(m);
     await templateModal.prompt();
     setModal(undefined);
   }
 
   async function handleDelete(id: string) {
-    const result = await confirmModal.prompt("Delete this template?");
+    const result = await confirmModal.prompt('Delete this template?');
     if (result === 'OK') deleteTemplate(id).then();
   }
 
   async function handleReset() {
-    const result = await confirmModal.prompt("Reset all templates to defaults? Custom templates will be lost.");
+    const result = await confirmModal.prompt('Reset all templates to defaults? Custom templates will be lost.');
     if (result === 'OK') resetTemplatesToDefault().then();
   }
 
@@ -312,7 +312,7 @@ export default function TemplatesPage() {
                   class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5">
             <RefreshIcon/>Reset to defaults
           </button>
-          <button onClick={() => openModal("add")}
+          <button onClick={() => openModal('add')}
                   class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
             <PlusIcon/>New Template
           </button>

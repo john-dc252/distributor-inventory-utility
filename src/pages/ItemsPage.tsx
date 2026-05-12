@@ -1,11 +1,11 @@
-import {createEffect, createMemo, createSignal, For, Show} from "solid-js";
-import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from "../store";
-import {createModal} from "../components/Modal";
-import {createConfirmModal} from "../components/ConfirmModal";
-import {ItemCardSkeleton} from "../components/Skeleton";
-import {ItemsEmptyState} from "../components/EmptyState";
-import {CheckIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from "../components/Icons";
-import {inputClsFull as inputCls, labelCls} from "../components/styles";
+import {createEffect, createMemo, createSignal, For, Show} from 'solid-js';
+import {addItem, deleteItem, isLoaded, Item, itemIdExists, state, updateItem} from '../store';
+import {createModal} from '../components/Modal';
+import {createConfirmModal} from '../components/ConfirmModal';
+import {ItemCardSkeleton} from '../components/Skeleton';
+import {ItemsEmptyState} from '../components/EmptyState';
+import {CheckIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from '../components/Icons';
+import {inputClsFull as inputCls, labelCls} from '../components/styles';
 
 interface ItemFields {
   id: string;
@@ -31,7 +31,7 @@ function ItemForm(props: {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result;
-      if (typeof result === "string") setPhoto(result);
+      if (typeof result === 'string') setPhoto(result);
     };
     reader.readAsDataURL(file);
   }
@@ -42,10 +42,10 @@ function ItemForm(props: {
     const trimName = name().trim();
     if (!trimId || !trimName) return;
     if (itemIdExists(trimId, props.initial?.id)) {
-      setIdError("This ID is already in use.");
+      setIdError('This ID is already in use.');
       return;
     }
-    setIdError("");
+    setIdError('');
     props.onSave({id: trimId, name: trimName, description: description().trim(), photo: photo()});
   }
 
@@ -59,7 +59,7 @@ function ItemForm(props: {
           </Show>
           <input type="file" accept="image/*" onChange={handleFile} class="text-sm text-gray-600 dark:text-gray-400"/>
           <Show when={photo()}>
-            <button type="button" onClick={() => setPhoto("")} class="text-xs text-red-500 hover:underline">Remove
+            <button type="button" onClick={() => setPhoto('')} class="text-xs text-red-500 hover:underline">Remove
             </button>
           </Show>
         </div>
@@ -71,7 +71,7 @@ function ItemForm(props: {
           value={id()}
           onInput={(e) => {
             setId(e.target.value);
-            setIdError("");
+            setIdError('');
           }}
           required
           class={inputCls}
@@ -113,18 +113,18 @@ function ItemForm(props: {
 }
 
 export default function ItemsPage() {
-  const [modal, setModal] = createSignal<"add" | Item | undefined>();
+  const [modal, setModal] = createSignal<'add' | Item | undefined>();
 
-  const isEditing = () => modal() && modal() !== "add";
+  const isEditing = () => modal() && modal() !== 'add';
 
   const itemModal = createModal({
-    title: () => modal() === "add" ? "New Item" : "Edit Item",
+    title: () => modal() === 'add' ? 'New Item' : 'Edit Item',
     children: (resolve, cancel) => (
       <ItemForm
         initial={isEditing() ? (modal() as Item) : undefined}
         onSave={async (fields) => {
           const m = modal();
-          if (m === "add") await addItem(fields);
+          if (m === 'add') await addItem(fields);
           else if (m) await updateItem(m.id, fields);
           resolve();
         }}
@@ -144,14 +144,14 @@ export default function ItemsPage() {
     );
   });
 
-  async function openModal(m: "add" | Item) {
+  async function openModal(m: 'add' | Item) {
     setModal(m);
     await itemModal.prompt();
     setModal(undefined);
   }
 
   async function handleDelete(id: string) {
-    const result = await confirmModal.prompt("Delete this item? Existing transactions referencing it will still show its ID.");
+    const result = await confirmModal.prompt('Delete this item? Existing transactions referencing it will still show its ID.');
     if (result === 'OK') deleteItem(id).then();
   }
 
@@ -163,7 +163,7 @@ export default function ItemsPage() {
     <div>
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">Items</h1>
-        <button onClick={() => openModal("add")}
+        <button onClick={() => openModal('add')}
                 class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
           <PlusIcon/>Add Item
         </button>

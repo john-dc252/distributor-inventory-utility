@@ -1,11 +1,11 @@
-import {HashRouter, Navigate, Route} from "@solidjs/router";
-import Layout from "./components/Layout";
-import AccountsPage from "./pages/AccountsPage";
-import ItemsPage from "./pages/ItemsPage";
-import CustomersPage from "./pages/CustomersPage";
-import TransactionsPage from "./pages/TransactionsPage";
-import TemplatesPage from "./pages/TemplatesPage";
-import {loadStoredData} from "./store";
+import {HashRouter, Navigate, Route} from '@solidjs/router';
+import Layout from './components/Layout';
+import AccountsPage from './pages/AccountsPage';
+import ItemsPage from './pages/ItemsPage';
+import CustomersPage from './pages/CustomersPage';
+import TransactionsPage from './pages/TransactionsPage';
+import TemplatesPage from './pages/TemplatesPage';
+import {loadStoredData} from './store';
 
 export default function App() {
   loadStoredData();

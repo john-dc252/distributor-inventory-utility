@@ -1,15 +1,15 @@
-import {createMemo, createSignal, For, Show} from "solid-js";
-import {deleteTransaction, state} from "../store";
-import {inputCls} from "../components/styles";
-import {EntryBlock} from "../components/EntryBlock";
-import {createConfirmModal} from "../components/ConfirmModal";
-import {ItemCombobox} from "../components/ItemCombobox";
-import {CustomerCombobox} from "../components/CustomerCombobox";
+import {createMemo, createSignal, For, Show} from 'solid-js';
+import {deleteTransaction, state} from '../store';
+import {inputCls} from '../components/styles';
+import {EntryBlock} from '../components/EntryBlock';
+import {createConfirmModal} from '../components/ConfirmModal';
+import {ItemCombobox} from '../components/ItemCombobox';
+import {CustomerCombobox} from '../components/CustomerCombobox';
 
 export default function HistoryPage() {
-  const [search, setSearch] = createSignal("");
-  const [filterCustomer, setFilterCustomer] = createSignal("");
-  const [filterItem, setFilterItem] = createSignal("");
+  const [search, setSearch] = createSignal('');
+  const [filterCustomer, setFilterCustomer] = createSignal('');
+  const [filterItem, setFilterItem] = createSignal('');
 
   const confirmModal = createConfirmModal();
 
@@ -31,7 +31,7 @@ export default function HistoryPage() {
   });
 
   async function handleDelete(id: string) {
-    const result = await confirmModal.prompt("Delete this transaction? This will affect account balances.");
+    const result = await confirmModal.prompt('Delete this transaction? This will affect account balances.');
     if (result === 'OK') deleteTransaction(id);
   }
 
@@ -67,7 +67,7 @@ export default function HistoryPage() {
               <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div class="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || "—"}</p>
+                    <p class="font-semibold text-gray-800 dark:text-gray-100 text-sm">{tx.description || '—'}</p>
                     <p class="text-xs text-gray-400 dark:text-gray-500">
                       {tx.date} &middot; recorded {new Date(tx.createdAt).toLocaleString()}
                     </p>

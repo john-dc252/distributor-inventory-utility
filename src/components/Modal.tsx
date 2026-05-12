@@ -1,6 +1,6 @@
-import {createSignal, JSX, onCleanup, Show} from "solid-js";
-import {Portal} from "solid-js/web";
-import {suspend} from "../utils";
+import {createSignal, JSX, onCleanup, Show} from 'solid-js';
+import {Portal} from 'solid-js/web';
+import {suspend} from '../utils';
 
 export type ModalResult = 'OK' | 'CANCELLED';
 
@@ -23,16 +23,16 @@ const isTopModal = (id: symbol) => {
 let lockCount = 0;
 
 function lockBody() {
-  if (++lockCount === 1) document.body.classList.add("overflow-hidden");
+  if (++lockCount === 1) document.body.classList.add('overflow-hidden');
 }
 
 function unlockBody() {
-  if (--lockCount === 0) document.body.classList.remove("overflow-hidden");
+  if (--lockCount === 0) document.body.classList.remove('overflow-hidden');
 }
 
 export function createModal(options: {
   title: string | (() => string);
-  size?: "md" | "lg";
+  size?: 'md' | 'lg';
   children: (resolve: () => void, cancel: () => void) => JSX.Element; // Consider renaming resolve/cancel to onConfirm/onCancel for clarity
 }): ModalController {
   const id = Symbol();
@@ -74,17 +74,17 @@ export function createModal(options: {
     resolve('CANCELLED');
   }
 
-  const resolvedTitle = typeof options.title === "function" ? options.title : () => options.title as string;
+  const resolvedTitle = typeof options.title === 'function' ? options.title : () => options.title as string;
 
   function Modal(): JSX.Element {
     return (
       <Show when={mounted()}>
         <Portal>
           <div
-            class={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ease-in-out ${visible() && isTopModal(id) ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            class={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ease-in-out ${visible() && isTopModal(id) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div class="absolute inset-0 bg-black/50 dark:bg-black/70" onClick={() => dismissCancelled()}/>
             <div
-              class={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-h-[90vh] flex flex-col transition-transform duration-300 ease-in-out ${options.size === "lg" ? "max-w-2xl" : "max-w-lg"} ${visible() && isTopModal(id) ? "translate-y-0" : "-translate-y-10"}`}>
+              class={`relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-h-[90vh] flex flex-col transition-transform duration-300 ease-in-out ${options.size === 'lg' ? 'max-w-2xl' : 'max-w-lg'} ${visible() && isTopModal(id) ? 'translate-y-0' : '-translate-y-10'}`}>
               <div
                 class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <h2 class="font-semibold text-gray-800 dark:text-gray-100">{resolvedTitle()}</h2>

@@ -1,17 +1,17 @@
-import {createEffect, createSignal} from "solid-js";
-import {dbGet, dbSet} from "../store/db";
+import {createEffect, createSignal} from 'solid-js';
+import {dbGet, dbSet} from '../store/db';
 
-const storedTheme = await dbGet<string>("theme") === "dark";
+const storedTheme = await dbGet<string>('theme') === 'dark';
 
 export default function ThemeToggle() {
   const [dark, setDark] = createSignal(storedTheme);
   createEffect(() => {
     if (dark()) {
-      document.documentElement.classList.add("dark");
-      dbSet("theme", "dark").then();
+      document.documentElement.classList.add('dark');
+      dbSet('theme', 'dark').then();
     } else {
-      document.documentElement.classList.remove("dark");
-      dbSet("theme", "light").then();
+      document.documentElement.classList.remove('dark');
+      dbSet('theme', 'light').then();
     }
   });
 
@@ -19,7 +19,7 @@ export default function ThemeToggle() {
     <button
       onClick={() => setDark((d) => !d)}
       class="ml-auto p-1.5 rounded hover:bg-indigo-600 transition-colors"
-      title={dark() ? "Switch to light mode" : "Switch to dark mode"}
+      title={dark() ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {dark() ? (
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-yellow-300" fill="currentColor" viewBox="0 0 24 24">

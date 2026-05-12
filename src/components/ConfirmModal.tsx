@@ -1,6 +1,6 @@
-import {createSignal, JSX} from "solid-js";
-import {createModal, ModalResult} from "./Modal";
-import {CheckIcon, XIcon} from "./Icons";
+import {createSignal, JSX} from 'solid-js';
+import {createModal, ModalResult} from './Modal';
+import {CheckIcon, XIcon} from './Icons';
 
 export interface ConfirmController {
   prompt(message: string): Promise<ModalResult>;
@@ -9,10 +9,10 @@ export interface ConfirmController {
 }
 
 export function createConfirmModal(): ConfirmController {
-  const [message, setMessage] = createSignal("");
+  const [message, setMessage] = createSignal('');
 
   const {prompt: basePrompt, Modal} = createModal({
-    title: "Confirm",
+    title: 'Confirm',
     children: (resolve, cancel) => (
       <div class="space-y-5">
         <p class="text-sm text-gray-700 dark:text-gray-300">{message()}</p>
