@@ -33,13 +33,13 @@ function unlockBody() {
 export function createModal(options: {
   title: string | (() => string);
   size?: "md" | "lg";
-  children: (resolve: () => void, cancel: () => void) => JSX.Element;
+  children: (resolve: () => void, cancel: () => void) => JSX.Element; // Consider renaming resolve/cancel to onConfirm/onCancel for clarity
 }): ModalController {
   const id = Symbol();
   const [mounted, setMounted] = createSignal(false);
   const [visible, setVisible] = createSignal(false);
   let resolvePromise: ((result: ModalResult) => void) | null = null;
-  let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
+  let dismissTimeout: ReturnType<typeof setTimeout> | undefined = undefined; // More accurate type for setTimeout return
 
   onCleanup(() => {
     if (dismissTimeout) clearTimeout(dismissTimeout);

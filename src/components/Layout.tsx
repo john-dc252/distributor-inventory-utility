@@ -2,8 +2,14 @@ import {createSignal, JSX, onCleanup, onMount, Show} from "solid-js";
 import {A} from "@solidjs/router";
 import {isLoaded} from "../store";
 import ThemeToggle from "./ThemeToggle";
+import type { RouteDefinition } from "@solidjs/router"; // Assuming RouteDefinition or similar type exists for router links
 
-const NAV = [
+interface NavItem {
+  href: string;
+  label: string;
+  end?: boolean;
+}
+const NAV: NavItem[] = [
   {href: "/", label: "Accounts", end: true},
   {href: "/items", label: "Items"},
   {href: "/customers", label: "Customers"},

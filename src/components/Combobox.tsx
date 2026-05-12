@@ -16,7 +16,7 @@ export function Combobox<T extends { id: string }>(props: {
 }) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
-  const [pos, setPos] = createSignal<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = createSignal<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
   let inputRef!: HTMLInputElement;
   let triggerRef!: HTMLButtonElement;
 
@@ -44,7 +44,7 @@ export function Combobox<T extends { id: string }>(props: {
   function openDropdown() {
     const r = triggerRef.getBoundingClientRect();
     const above = window.innerHeight - r.bottom < 260;
-    setPos({
+    setDropdownPosition({
       left: r.left,
       width: r.width,
       ...(above ? {bottom: window.innerHeight - r.top + 4} : {top: r.bottom + 4}),
@@ -74,10 +74,10 @@ export function Combobox<T extends { id: string }>(props: {
           <div
             class="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden text-gray-800 dark:text-gray-100"
             style={{
-              top: pos()!.top !== undefined ? `${pos()!.top}px` : undefined,
-              bottom: pos()!.bottom !== undefined ? `${pos()!.bottom}px` : undefined,
-              left: `${pos()!.left}px`,
-              width: `${pos()!.width}px`,
+              top: dropdownPosition()!.top !== undefined ? `${dropdownPosition()!.top}px` : undefined,
+              bottom: dropdownPosition()!.bottom !== undefined ? `${dropdownPosition()!.bottom}px` : undefined,
+              left: `${dropdownPosition()!.left}px`,
+              width: `${dropdownPosition()!.width}px`,
             }}>
             <div class="p-2 border-b border-gray-100 dark:border-gray-700">
               <input ref={inputRef} type="text" value={query()}

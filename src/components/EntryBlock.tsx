@@ -1,4 +1,4 @@
-import {For, Show} from "solid-js";
+import {createMemo, For, Show} from "solid-js";
 import {AccountId, Customer, Entry, Item, Leg} from "../store";
 import {LegPill} from "./LegPill";
 
@@ -7,10 +7,10 @@ export function EntryBlock(props: {
   items: Item[];
   customers?: Customer[];
 }) {
-  const item = () => props.items.find((it) => it.id === props.entry.itemId);
+  const entryItem = createMemo(() => props.items.find((it) => it.id === props.entry.itemId));
 
   const resolveLegs = (legs: Leg[]) => {
-    const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
+    const arr = legs || []; // Ensure it's an array, even if null/undefined
     return arr.map((leg) => {
       const legObj = typeof leg === "string" ? {accountId: leg as AccountId, qty: 0} : leg;
       return {
@@ -33,14 +33,14 @@ export function EntryBlock(props: {
 
   return (
     <div class="border border-gray-100 dark:border-gray-700 rounded p-2 space-y-1">
-      <Show when={item()} fallback={
+      <Show when={entryItem()} fallback={
         <Show when={props.entry.itemId}>
           <span class="text-xs font-mono text-gray-400 dark:text-gray-500">{props.entry.itemId}</span>
         </Show>
       }>
         <span class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{item()?.id ?? "-"}</span>
-          {item()?.name ?? "-"}
+          <span class="font-mono bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-1 rounded">{entryItem()?.id ?? "-"}</span>
+          {entryItem()?.name ?? "-"}
         </span>
       </Show>
       <div class="grid grid-cols-2 gap-x-3 gap-y-0.5">

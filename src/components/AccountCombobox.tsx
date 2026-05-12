@@ -4,6 +4,21 @@ import {Combobox} from "./Combobox";
 
 type AccountOption = { id: string; code: string; name: string; customerSpecific: boolean };
 
+interface AccountDisplayProps {
+  option: AccountOption;
+}
+
+function AccountDisplay(props: AccountDisplayProps) {
+  return (
+    <span class="flex items-center gap-1.5 min-w-0">
+      <Show when={props.option.code}>
+        <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">{props.option.code}</span>
+      </Show>
+      <span class="text-sm truncate">{props.option.name}</span>
+    </span>
+  );
+}
+
 const selectAccountOption: AccountOption = {id: "", code: "", name: "Select an account", customerSpecific: false};
 const allAccountsOption: AccountOption = {id: "", code: "", name: "All Accounts", customerSpecific: false};
 
@@ -34,26 +49,8 @@ export function AccountCombobox(props: {
       placeholder="— select account —"
       searchPlaceholder="Search accounts..."
       emptyText="No accounts found"
-      renderTrigger={(opt) => (
-        <span class="flex items-center gap-1.5 min-w-0">
-          <Show when={opt.code}>
-            <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
-              {opt.code}
-            </span>
-          </Show>
-          <span class="text-sm truncate">{opt.name}</span>
-        </span>
-      )}
-      renderOption={(opt) => (
-        <>
-          <Show when={opt.code}>
-            <span class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded shrink-0">
-              {opt.code}
-            </span>
-          </Show>
-          <span class="text-sm truncate">{opt.name}</span>
-        </>
-      )}
+      renderTrigger={(opt) => <AccountDisplay option={opt}/>}
+      renderOption={(opt) => <AccountDisplay option={opt}/>}
     />
   );
 }

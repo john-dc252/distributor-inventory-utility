@@ -1,9 +1,10 @@
 import {createSignal, JSX} from "solid-js";
-import {createModal} from "./Modal";
+import {createModal, ModalResult} from "./Modal";
 import {CheckIcon, XIcon} from "./Icons";
 
 export interface ConfirmController {
   prompt(message: string): Promise<ModalResult>;
+
   Modal: () => JSX.Element;
 }
 
