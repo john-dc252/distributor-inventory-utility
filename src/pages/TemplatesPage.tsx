@@ -38,12 +38,13 @@ function newEntry(): TemplateFormEntry {
 
 function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-  return legsArray
+  return legsArray.values()
     .map((leg) => {
       const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {accountId: accountId};
     })
-    .filter((leg) => leg.accountId);
+    .filter((leg) => leg.accountId)
+    .toArray();
 }
 
 function normalizeTemplateEntries(templateEntries: any): TemplateFormEntry[] {

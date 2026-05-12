@@ -72,7 +72,7 @@ function newEntryFromLast(last: FormEntry): FormEntry {
 
 function normalizeTemplateLegs(legs: any): FormLeg[] {
   const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-  const normalized = arr
+  const normalized = arr.values()
     .map((leg: any) => {
       const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {
@@ -81,7 +81,8 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
         qty: leg?.qty ?? '',
       };
     })
-    .filter((leg: FormLeg) => leg.accountId);
+    .filter((leg: FormLeg) => leg.accountId)
+    .toArray();
   return normalized.length > 0 ? normalized : [newLeg()];
 }
 
@@ -631,13 +632,15 @@ function TemplatePicker(props: {
 // ── Transaction customer header summary ───────────────────────────────────────
 function TxCustomers(props: { tx: { entries: Entry[] }; customers: Customer[] }) {
   const customers = () => {
-    const ids = new Set<string>();
-    props.tx.entries.forEach(e => {
-      [...(e.sources ?? []), ...(e.destinations ?? [])].forEach(l => {
-        if (l.customerId) ids.add(l.customerId);
-      });
-    });
-    return [...ids].map(id => props.customers.find(c => c.id === id)).filter((c): c is Customer => !!c);
+    const ids = props.tx.entries.values()
+      .flatMap(e => [...(e.sources ?? []), ...(e.destinations ?? [])])
+      .filter(l => !!l.customerId)
+      .map(l => l.customerId!);
+    const uniqueIds = new Set(ids);
+    return uniqueIds.values()
+      .map(id => props.customers.find(c => c.id === id))
+      .filter((c): c is Customer => !!c)
+      .toArray();
   };
 
   return (
