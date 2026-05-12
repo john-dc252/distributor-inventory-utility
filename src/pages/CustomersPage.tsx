@@ -5,8 +5,10 @@ import {createConfirmModal} from '../components/ConfirmModal';
 import {CustomerCardSkeleton} from '../components/Skeleton';
 import {CustomersEmptyState} from '../components/EmptyState';
 import {useNavigate} from '@solidjs/router';
-import {CheckIcon, FilePlusIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon, XIcon} from '../components/Icons';
+import {FilePlusIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon} from '../components/Icons';
 import {inputClsFull as inputCls, labelCls} from '../components/styles';
+import {PhotoUpload} from '../components/PhotoUpload';
+import {FormActions} from '../components/FormActions';
 
 interface CustomerFields {
   name: string;
@@ -23,17 +25,6 @@ function CustomerForm(props: {
   const [description, setDescription] = createSignal(props.initial?.description ?? '');
   const [photo, setPhoto] = createSignal(props.initial?.photo ?? '');
 
-  function handleFile(e: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement }) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result;
-      if (typeof result === 'string') setPhoto(result);
-    };
-    reader.readAsDataURL(file);
-  }
-
   function submit(e: Event) {
     e.preventDefault();
     if (!name().trim()) return;
@@ -42,19 +33,7 @@ function CustomerForm(props: {
 
   return (
     <form onSubmit={submit} class="space-y-4">
-      <div>
-        <label class={labelCls}>Photo (optional)</label>
-        <div class="flex items-center gap-3">
-          <Show when={photo()}>
-            <img src={photo()} alt="preview" class="w-12 h-12 rounded-full object-cover border dark:border-gray-600"/>
-          </Show>
-          <input type="file" accept="image/*" onChange={handleFile} class="text-sm text-gray-600 dark:text-gray-400"/>
-          <Show when={photo()}>
-            <button type="button" onClick={() => setPhoto('')} class="text-xs text-red-500 hover:underline">Remove
-            </button>
-          </Show>
-        </div>
-      </div>
+      <PhotoUpload photo={photo()} setPhoto={setPhoto} roundedFull />
 
       <div>
         <label class={labelCls}>Name *</label>
@@ -68,16 +47,7 @@ function CustomerForm(props: {
                   placeholder="Optional notes"/>
       </div>
 
-      <div class="flex gap-2 justify-end pt-1">
-        <button type="button" onClick={props.onCancel}
-                class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1.5">
-          <XIcon/>Cancel
-        </button>
-        <button type="submit"
-                class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1.5">
-          <CheckIcon/>Save
-        </button>
-      </div>
+      <FormActions onCancel={props.onCancel} />
     </form>
   );
 }

@@ -6,7 +6,6 @@ import {
   deleteTemplate,
   getAccountLabel,
   isLoaded,
-  PREDEFINED_ACCOUNT_IDS,
   resetTemplatesToDefault,
   state,
   Template,
@@ -39,15 +38,12 @@ function newEntry(): TemplateFormEntry {
 
 function normalizeTemplateLegs(legs: any): TemplateFormLeg[] {
   const legsArray = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-  const normalized = legsArray.values()
+  return legsArray
     .map((leg) => {
       const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {accountId: accountId};
     })
-    .filter((leg) => leg.accountId)
-    .toArray();
-
-  return normalized.length > 0 ? normalized : [newLeg()];
+    .filter((leg) => leg.accountId);
 }
 
 function normalizeTemplateEntries(templateEntries: any): TemplateFormEntry[] {
@@ -56,6 +52,9 @@ function normalizeTemplateEntries(templateEntries: any): TemplateFormEntry[] {
   return templateEntries.map((entry) => ({
     sources: normalizeTemplateLegs(entry?.sources ?? entry?.source),
     destinations: normalizeTemplateLegs(entry?.destinations ?? entry?.destination),
+  })).map(entry => ({
+    sources: entry.sources.length > 0 ? entry.sources : [newLeg()],
+    destinations: entry.destinations.length > 0 ? entry.destinations : [newLeg()],
   }));
 }
 

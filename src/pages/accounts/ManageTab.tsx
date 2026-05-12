@@ -1,9 +1,9 @@
 import {createSignal, For, Show} from 'solid-js';
 import {
+  Account,
   accountCodeExists,
   addAccount,
   deleteAccount,
-  Account,
   PREDEFINED_ACCOUNT_ID_SET,
   state,
   updateAccount,
@@ -11,67 +11,19 @@ import {
 import {CheckIcon, PencilIcon, PlusIcon, TrashIcon, XIcon} from '../../components/Icons';
 import {inputCls} from '../../components/styles';
 
-function AccountEditForm(props: { account: Account; onDone: () => void }) {
-  const [code, setCode] = createSignal(props.account.code);
-  const [name, setName] = createSignal(props.account.name);
-  const [description, setDescription] = createSignal(props.account.description ?? '');
-  const [customerSpecific, setCustomerSpecific] = createSignal(props.account.customerSpecific);
-  const [error, setError] = createSignal('');
-
-  async function save(e: Event) {
-    e.preventDefault();
-    const c = code().trim();
-    const n = name().trim();
-    if (!c || !n) return;
-    if (accountCodeExists(c, props.account.id)) {
-      setError(`Code "${c}" is already used by another account.`);
-      return;
-    }
-    await updateAccount(props.account.id, {
-      code: c,
-      name: n,
-      description: description().trim() || undefined,
-      customerSpecific: customerSpecific(),
-    });
-    props.onDone();
-  }
-
-  return (
-    <form onSubmit={save}
-          class="flex flex-wrap items-center gap-2 py-2 px-3 my-0.5 bg-gray-50 dark:bg-gray-700/60 rounded border border-gray-200 dark:border-gray-600">
-      <input value={code()} onInput={(e) => setCode(e.target.value)} required
-             placeholder="Code" class={`w-28 font-mono ${inputCls}`}/>
-      <input value={name()} onInput={(e) => setName(e.target.value)} required
-             placeholder="Name" class={`flex-1 min-w-32 ${inputCls}`}/>
-      <input value={description()} onInput={(e) => setDescription(e.target.value)}
-             placeholder="Description (optional)" class={`flex-1 min-w-40 ${inputCls}`}/>
-      <label class="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 shrink-0 cursor-pointer select-none">
-        <input type="checkbox" checked={customerSpecific()}
-               onChange={(e) => setCustomerSpecific(e.target.checked)} class="rounded"/>
-        customer-specific
-      </label>
-      <Show when={error()}>
-        <span class="w-full text-xs text-red-600 dark:text-red-400">{error()}</span>
-      </Show>
-      <div class="flex gap-1.5">
-        <button type="submit"
-                class="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1">
-          <CheckIcon class="w-3 h-3"/>Save
-        </button>
-        <button type="button" onClick={props.onDone}
-                class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1">
-          <XIcon class="w-3 h-3"/>Cancel
-        </button>
-      </div>
-    </form>
-  );
+interface AccountFormProps {
+  initial?: Account;
+  parentId?: string | null;
+  customerSpecific?: boolean;
+  onDone: () => void;
+  isAdd?: boolean;
 }
 
-function AccountAddForm(props: { parentId: string | null; customerSpecific?: boolean; onDone: () => void }) {
-  const [code, setCode] = createSignal('');
-  const [name, setName] = createSignal('');
-  const [description, setDescription] = createSignal('');
-  const [customerSpecific, setCustomerSpecific] = createSignal(props.customerSpecific ?? false);
+function AccountForm(props: AccountFormProps) {
+  const [code, setCode] = createSignal(props.initial?.code ?? '');
+  const [name, setName] = createSignal(props.initial?.name ?? '');
+  const [description, setDescription] = createSignal(props.initial?.description ?? '');
+  const [customerSpecific, setCustomerSpecific] = createSignal(props.initial?.customerSpecific ?? props.customerSpecific ?? false);
   const [error, setError] = createSignal('');
 
   async function save(e: Event) {
@@ -79,22 +31,35 @@ function AccountAddForm(props: { parentId: string | null; customerSpecific?: boo
     const c = code().trim();
     const n = name().trim();
     if (!c || !n) return;
-    if (accountCodeExists(c)) {
-      setError(`Code "${c}" already exists.`);
+    if (accountCodeExists(c, props.initial?.id)) {
+      setError(`Code "${c}" is already used.`);
       return;
     }
-    await addAccount(props.parentId, {
-      code: c,
-      name: n,
-      description: description().trim() || undefined,
-      customerSpecific: customerSpecific(),
-    });
+    if (props.isAdd) {
+      await addAccount(props.parentId ?? null, {
+        code: c,
+        name: n,
+        description: description().trim() || undefined,
+        customerSpecific: customerSpecific(),
+      });
+    } else if (props.initial) {
+      await updateAccount(props.initial.id, {
+        code: c,
+        name: n,
+        description: description().trim() || undefined,
+        customerSpecific: customerSpecific(),
+      });
+    }
     props.onDone();
   }
 
+  const bgCls = () => props.isAdd
+    ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700'
+    : 'bg-gray-50 dark:bg-gray-700/60 border-gray-200 dark:border-gray-600';
+
   return (
     <form onSubmit={save}
-          class="flex flex-wrap items-center gap-2 py-2 px-3 my-0.5 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-700">
+          class={`flex flex-wrap items-center gap-2 py-2 px-3 my-0.5 rounded border ${bgCls()}`}>
       <input value={code()} onInput={(e) => setCode(e.target.value)} required
              placeholder="Code" class={`w-28 font-mono ${inputCls}`}/>
       <input value={name()} onInput={(e) => setName(e.target.value)} required
@@ -112,7 +77,7 @@ function AccountAddForm(props: { parentId: string | null; customerSpecific?: boo
       <div class="flex gap-1.5">
         <button type="submit"
                 class="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700 inline-flex items-center gap-1">
-          <CheckIcon class="w-3 h-3"/>Add
+          <CheckIcon class="w-3 h-3"/>{props.isAdd ? 'Add' : 'Save'}
         </button>
         <button type="button" onClick={props.onDone}
                 class="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 inline-flex items-center gap-1">
@@ -183,14 +148,18 @@ function AccountNode(props: { account: Account; depth: number }) {
         </div>
       }>
         <div style={{'padding-left': indent()}}>
-          <AccountEditForm account={props.account} onDone={() => setEditing(false)}/>
+          <AccountForm initial={props.account} onDone={() => setEditing(false)}/>
         </div>
       </Show>
 
       <Show when={addingChild()}>
         <div style={{'padding-left': `${(props.depth + 1) * 1.25}rem`}}>
-          <AccountAddForm parentId={props.account.id} customerSpecific={props.account.customerSpecific}
-                          onDone={() => setAddingChild(false)}/>
+          <AccountForm 
+            parentId={props.account.id} 
+            customerSpecific={props.account.customerSpecific}
+            isAdd
+            onDone={() => setAddingChild(false)}
+          />
         </div>
       </Show>
 

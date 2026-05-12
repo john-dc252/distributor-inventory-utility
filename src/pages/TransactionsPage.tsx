@@ -72,7 +72,7 @@ function newEntryFromLast(last: FormEntry): FormEntry {
 
 function normalizeTemplateLegs(legs: any): FormLeg[] {
   const arr = Array.isArray(legs) ? legs : (legs ? [legs] : []);
-  const normalized = arr.values()
+  const normalized = arr
     .map((leg: any) => {
       const accountId = (typeof leg === 'string' ? leg : leg?.accountId) as AccountId;
       return {
@@ -81,8 +81,7 @@ function normalizeTemplateLegs(legs: any): FormLeg[] {
         qty: leg?.qty ?? '',
       };
     })
-    .filter((leg: FormLeg) => leg.accountId)
-    .toArray();
+    .filter((leg: FormLeg) => leg.accountId);
   return normalized.length > 0 ? normalized : [newLeg()];
 }
 

@@ -1,8 +1,8 @@
 import {createMemo, createSignal, For, Show} from 'solid-js';
 import {
+  Account,
   computeBalance,
   Customer,
-  Account,
   isLoaded,
   Item,
   PREDEFINED_ACCOUNT_IDS,
